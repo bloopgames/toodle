@@ -2,7 +2,7 @@
 
 ::: warning Unstable API
 
-The API for defining shaders is a first pass and is likely to change as we get usage feedback.
+The API for defining shaders is likely to change as we get usage feedback.
 
 Areas that are likely to change:
 

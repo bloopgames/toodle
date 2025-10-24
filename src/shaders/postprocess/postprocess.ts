@@ -1,5 +1,10 @@
 import type { Color } from "../../coreTypes/Color";
 
+export type ScreenShaderDefinition = {
+  pipeline: GPURenderPipeline;
+  bindGroups: GPUBindGroup[];
+};
+
 export function postProcess(
   encoder: GPUCommandEncoder,
   context: GPUCanvasContext,
