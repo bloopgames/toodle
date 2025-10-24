@@ -1,61 +1,5 @@
 import type { Color } from "../../coreTypes/Color";
 
-export const defaults = {
-  sampler(device: GPUDevice): GPUSampler {
-    return device.createSampler({
-      label: "toodle post process sampler",
-      magFilter: "linear",
-      minFilter: "linear",
-      mipmapFilter: "linear",
-      addressModeU: "clamp-to-edge",
-      addressModeV: "clamp-to-edge",
-    });
-  },
-
-  vertexBufferLayout(device: GPUDevice): GPUVertexBufferLayout {
-    return {
-      arrayStride: 4 * 4,
-      attributes: [{ shaderLocation: 0, offset: 0, format: "float32x2" }],
-    };
-  },
-
-  vertexShader(device: GPUDevice): GPUShaderModule {
-    return device.createShaderModule({
-      label: "toodle post process vertex shader",
-      code: `
-  struct VertexOut {
-    @builtin(position) position: vec4<f32>,
-    @location(0) uv: vec2<f32>,
-  };
-
-  const enginePosLookup = array(vec2f(-1, 1), vec2f(-1, -1), vec2f(1, 1), vec2f(1, -1));
-  const engineUvLookup = array(vec2f(0, 0), vec2f(0, 1), vec2f(1, 0), vec2f(1, 1));
-
-  @vertex
-  fn vs_main(@builtin(vertex_index) vertexIndex: u32) -> VertexOut {
-    var out: VertexOut;
-    out.position = vec4(enginePosLookup[vertexIndex], 0.0, 1.0);
-    out.uv = engineUvLookup[vertexIndex];
-    return out;
-  }
-      `,
-    });
-  },
-
-  pipelineDescriptor(device: GPUDevice): GPURenderPipelineDescriptor {
-    return {
-      label: "toodle post process pipeline descriptor",
-      layout: "auto",
-
-      primitive: { topology: "triangle-strip" },
-      vertex: {
-        buffers: [defaults.vertexBufferLayout(device)],
-        module: defaults.vertexShader(device),
-      },
-    };
-  },
-} as const;
-
 export function renderToTarget(
   label: string,
   from: GPUTexture,
@@ -87,6 +31,7 @@ export function renderToTarget(
   // create engine uniform
   // todo: only create this once
   const engineUniform = device.createBuffer({
+    label: `${label} engine uniform buffer`,
     size: 16,
     usage: GPUBufferUsage.UNIFORM,
     mappedAtCreation: true,

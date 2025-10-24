@@ -3,7 +3,7 @@
 Toodle supports fullscreen shaders, also known as post-processing effects.
 
 ::: warning
-Unstable API and performance when enabling screen shaders.
+API is low-level and experimental, expect breaking changes.
 :::
 
 {toodle=snippets/screen-shaders.ts width=400px height=400px}

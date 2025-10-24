@@ -18,10 +18,7 @@ import type { Resolution } from "./screen/resolution";
 import type { EngineUniform } from "./shaders/EngineUniform";
 import type { IShader } from "./shaders/IShader";
 import { blur } from "./shaders/postprocess/blur";
-import {
-  none,
-  ScreenShaderDefinition,
-} from "./shaders/postprocess/postprocess";
+import { none, PostProcess } from "./shaders/postprocess/mod";
 import { QuadShader } from "./shaders/QuadShader";
 import { TextNode, type TextOptions } from "./text/TextNode";
 import { AssetManager, type TextureId } from "./textures/AssetManager";
@@ -72,7 +69,7 @@ export class Toodle {
   #device: GPUDevice;
   #context: GPUCanvasContext;
   #presentationFormat: GPUTextureFormat;
-  #screenShader: ScreenShaderDefinition | null = null;
+  #postprocess: PostProcess | null = null;
   #renderPass?: GPURenderPassEncoder;
   #encoder?: GPUCommandEncoder;
   #pingpong!: [GPUTexture, GPUTexture];
@@ -127,18 +124,18 @@ export class Toodle {
    * Screen shader is an optional slot for post-processing effects.
    * Note that this will do the main render pass to an offscreen texture, which may impact performance.
    */
-  get screenShader() {
-    return this.#screenShader;
+  get postprocess() {
+    return this.#postprocess;
   }
 
-  set screenShader(value: ScreenShaderDefinition | null) {
-    this.#screenShader = value;
+  set postprocess(value: PostProcess | null) {
+    this.#postprocess = value;
     const hasChanged =
       this.#resolution.width !==
         this.#pingpong[0].width / window.devicePixelRatio ||
       this.#resolution.height !==
         this.#pingpong[0].height / window.devicePixelRatio;
-    if (value && hasChanged) {
+    if (value != null && hasChanged) {
       this.#createPingPongTextures(this.#resolution);
     }
   }
@@ -167,7 +164,7 @@ export class Toodle {
     const hasChanged =
       resolution.width !== this.#resolution.width ||
       resolution.height !== this.#resolution.height;
-    if (this.screenShader && hasChanged) {
+    if (this.postprocess && hasChanged) {
       this.#pingpong[0].destroy();
       this.#pingpong[1].destroy();
     }
@@ -306,7 +303,7 @@ export class Toodle {
    */
   startFrame(options?: StartFrameOptions) {
     this.#encoder = this.#device.createCommandEncoder();
-    const target = this.screenShader
+    const target = this.postprocess
       ? this.#pingpong[0]
       : this.#context.getCurrentTexture();
     this.#renderPass = this.#encoder.beginRenderPass({
@@ -395,19 +392,14 @@ export class Toodle {
       }
       this.#renderPass.end();
 
-      if (this.screenShader) {
-        throw new Error(`Can't run screen shader yet`);
+      if (this.postprocess) {
+        this.postprocess.process(
+          this.#device.queue,
+          this.#encoder,
+          this.#pingpong,
+          this.#context.getCurrentTexture(),
+        );
       }
-      // none(this.#device, this.#presentationFormat, this.#pingpong);
-      // blur(
-      //   this.#encoder,
-      //   this.#context,
-      //   this.#device,
-      //   this.clearColor,
-      //   this.#presentationFormat,
-      //   this.#pingpong,
-      // );
-
       this.#device.queue.submit([this.#encoder.finish()]);
     } finally {
       this.#batcher.flush();
