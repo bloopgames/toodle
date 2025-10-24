@@ -17,8 +17,7 @@ const toodle = await Toodle.attach(canvas, { filter: "linear" });
 //     })
 //     // handled by top level
 //     // renderPass.setPipeline(pipeline)
-
-//     renderPass.draw(4, 1);
+//     renderPass.draw(4);
 //     renderPass.end();
 //   },
 
@@ -186,7 +185,7 @@ const postprocess: Shaders.PostProcess = {
     renderPass.setVertexBuffer(0, buffers.fullscreenVertexBuffer);
     enginePiece.bindgroups[0].bind(renderPass, pingpong[0], sampler, buffers.engineUniformBuffer);
 
-    renderPass.draw(4, 1);
+    renderPass.draw(4);
     renderPass.end();
   }
 };
