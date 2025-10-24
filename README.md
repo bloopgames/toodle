@@ -5,7 +5,7 @@ A portmanteau of "2d" and "doodle", toodle is a simple 2d graphics engine focuse
 Full documentation is available at [toodle.gg](https://toodle.gg).
 
 ```ts
-import { Toodle, Limits } from "@blooper.gg/toodle";
+import { Toodle, Limits } from "@bloop.gg/toodle";
 
 // attach to an html canvas element
 const canvas = document.createElement("canvas");

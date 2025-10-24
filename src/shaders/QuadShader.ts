@@ -1,7 +1,7 @@
 import {
-  type StructuredView,
   makeShaderDataDefinitions,
   makeStructuredView,
+  type StructuredView,
 } from "webgpu-utils";
 import { WgslReflect } from "wgsl_reflect";
 import type { SceneNode } from "../scene/SceneNode";
@@ -30,6 +30,7 @@ export class QuadShader implements IShader {
   #uniformValues: StructuredView;
   #instanceData: InstanceData;
   #instanceIndex = 0;
+  #instanceCount;
 
   #device: GPUDevice;
   #pipeline: GPURenderPipeline;
@@ -57,6 +58,15 @@ export class QuadShader implements IShader {
     renderPass.setPipeline(this.#pipeline);
     const batchStartInstanceIndex = this.#instanceIndex;
 
+    // Count for the number of instances in the buffer...
+    let instanceCount = 0;
+
+    if (nodes.length > this.#instanceCount) {
+      throw new Error(
+        `ToodleInstanceCap: ${nodes.length} instances enqueued, max is ${this.#instanceCount} for ${this.label} shader`,
+      );
+    }
+
     for (let i = 0; i < nodes.length; i++) {
       if (!this.#instanceData) {
         continue;
@@ -64,11 +74,11 @@ export class QuadShader implements IShader {
       const instance = nodes[i];
       assert(instance.renderComponent, "instance has no render component");
       const floatOffset =
-        ((batchStartInstanceIndex + i) *
+        ((batchStartInstanceIndex + instanceCount) *
           this.#instanceData.bufferLayout.arrayStride) /
         Float32Array.BYTES_PER_ELEMENT;
 
-      instance.renderComponent.writeInstance(
+      instanceCount += instance.renderComponent.writeInstance(
         instance,
         this.#instanceData.cpuBuffer,
         floatOffset,
@@ -79,7 +89,7 @@ export class QuadShader implements IShader {
       const byteOffset =
         batchStartInstanceIndex * this.#instanceData.bufferLayout.arrayStride;
       const byteLength =
-        nodes.length * this.#instanceData.bufferLayout.arrayStride;
+        instanceCount * this.#instanceData.bufferLayout.arrayStride;
 
       this.#device.queue.writeBuffer(
         this.#instanceData.gpuBuffer,
@@ -96,9 +106,9 @@ export class QuadShader implements IShader {
       }
     }
 
-    this.#instanceIndex += nodes.length;
+    this.#instanceIndex += instanceCount;
 
-    renderPass.draw(4, nodes.length, 0, batchStartInstanceIndex);
+    renderPass.draw(4, instanceCount, 0, batchStartInstanceIndex);
     return 1;
   }
 
@@ -217,6 +227,8 @@ export class QuadShader implements IShader {
       textureAtlas,
       this.#uniformBuffer,
     );
+
+    this.#instanceCount = instanceCount;
   }
 }
 

@@ -1,6 +1,7 @@
 import type { Size } from "../coreTypes/Size";
 import type { Vec2 } from "../coreTypes/Vec2";
 import type { Limits } from "../limits";
+import { JumboQuadNode } from "../scene/JumboQuadNode";
 import { QuadNode } from "../scene/QuadNode";
 import type { SceneNode } from "../scene/SceneNode";
 import { FontPipeline } from "../text/FontPipeline";
@@ -38,7 +39,6 @@ export class AssetManager {
   #cropComputeShader: TextureComputeShader;
   #limits: Limits;
   #availableIndices: Set<number> = new Set();
-  #currentAtlasIndex = 0;
 
   constructor(
     device: GPUDevice,
@@ -143,6 +143,8 @@ export class AssetManager {
    * await toodle.assets.loadTextures({
    *   "myImage": new URL("assets/image.png", "https://mywebsite.com"),
    * });
+   *
+   * @deprecated use {@link registerBundle} instead. or {@link loadTexture} for debugging
    */
   async loadTextures(opts: TextureBundleOpts["textures"]): Promise<void> {
     await Promise.all(
@@ -317,7 +319,12 @@ export class AssetManager {
   }
 
   validateTextureReference(node: SceneNode | QuadNode) {
-    if (!(node instanceof QuadNode) || node.isPrimitive) return;
+    if (
+      !(node instanceof QuadNode) ||
+      node.isPrimitive ||
+      node instanceof JumboQuadNode
+    )
+      return;
 
     const coords: AtlasCoords[] | undefined = this.#textures.get(
       node.textureId,

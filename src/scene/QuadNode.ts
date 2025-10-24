@@ -1,9 +1,9 @@
 import { type Mat3, mat3 } from "wgpu-matrix";
-import type { Toodle } from "../Toodle";
 import type { Color } from "../coreTypes/Color";
 import type { Size } from "../coreTypes/Size";
 import type { Vec2 } from "../coreTypes/Vec2";
 import type { IShader } from "../shaders/IShader";
+import type { Toodle } from "../Toodle";
 import type { TextureId } from "../textures/AssetManager";
 import type { AtlasCoords, TexelRegion } from "../textures/types";
 import { assert } from "../utils/assert";
@@ -391,4 +391,6 @@ function writeQuadInstance(
   );
 
   node.writeInstance?.(array, offset + 28);
+
+  return 1;
 }

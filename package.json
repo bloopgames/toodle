@@ -1,11 +1,12 @@
 {
-  "name": "@blooper.gg/toodle",
-  "version": "0.0.74",
+  "name": "@bloop.gg/toodle",
+  "version": "0.0.94",
   "type": "module",
   "files": ["dist", "src"],
+  "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/blooper-gg/toodle.git"
+    "url": "https://github.com/bloopgames/toodle.git"
   },
   "publishConfig": {
     "access": "public"
@@ -29,7 +30,7 @@
     "docs:build": "(cd docs && bun run docs:build)"
   },
   "devDependencies": {
-    "@biomejs/biome": "^1.9.4",
+    "@biomejs/biome": "^2.1.2",
     "@types/bun": "^1.1.13",
     "@webgpu/types": "^0.1.51",
     "vite": "^5.4.11"

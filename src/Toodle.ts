@@ -11,13 +11,14 @@ import {
 } from "./math/matrix";
 import { Batcher } from "./scene/Batcher";
 import { Camera } from "./scene/Camera";
+import { JumboQuadNode, type JumboQuadOptions } from "./scene/JumboQuadNode";
 import { QuadNode, type QuadOptions } from "./scene/QuadNode";
 import { type NodeOptions, SceneNode } from "./scene/SceneNode";
 import type { Resolution } from "./screen/resolution";
 import type { EngineUniform } from "./shaders/EngineUniform";
 import type { IShader } from "./shaders/IShader";
-import { QuadShader } from "./shaders/QuadShader";
 import { blur } from "./shaders/postprocess/blur";
+import { QuadShader } from "./shaders/QuadShader";
 import { TextNode, type TextOptions } from "./text/TextNode";
 import { AssetManager, type TextureId } from "./textures/AssetManager";
 import { initGpu } from "./utils/boilerplate";
@@ -314,60 +315,62 @@ export class Toodle {
    * toodle.endFrame();
    */
   endFrame() {
-    assert(
-      this.#renderPass,
-      "no render pass found. have you called startFrame?",
-    );
-    assert(this.#encoder, "no encoder found. have you called startFrame?");
-
-    mat3.mul(
-      this.#projectionMatrix,
-      this.camera.matrix,
-      this.#engineUniform.viewProjectionMatrix,
-    );
-    this.#engineUniform.resolution = this.#resolution;
-    for (const pipeline of this.#batcher.pipelines) {
-      pipeline.shader.startFrame(this.#device, this.#engineUniform);
-    }
-
-    this.diagnostics.instancesEnqueued = this.#batcher.nodes.length;
-    if (this.#batcher.nodes.length > this.#limits.instanceCount) {
-      const err = new Error(
-        `ToodleInstanceCap: ${this.batcher.nodes.length} instances enqueued, max is ${this.limits.instanceCount}`,
+    try {
+      assert(
+        this.#renderPass,
+        "no render pass found. have you called startFrame?",
       );
-      err.name = "ToodleInstanceCap";
-      throw err;
-    }
+      assert(this.#encoder, "no encoder found. have you called startFrame?");
 
-    for (const layer of this.#batcher.layers) {
-      for (const pipeline of layer.pipelines) {
-        this.diagnostics.pipelineSwitches++;
-        this.diagnostics.drawCalls += pipeline.shader.processBatch(
-          this.#renderPass,
-          pipeline.nodes,
-        );
+      mat3.mul(
+        this.#projectionMatrix,
+        this.camera.matrix,
+        this.#engineUniform.viewProjectionMatrix,
+      );
+      this.#engineUniform.resolution = this.#resolution;
+      for (const pipeline of this.#batcher.pipelines) {
+        pipeline.shader.startFrame(this.#device, this.#engineUniform);
       }
+
+      this.diagnostics.instancesEnqueued = this.#batcher.nodes.length;
+      if (this.#batcher.nodes.length > this.#limits.instanceCount) {
+        const err = new Error(
+          `ToodleInstanceCap: ${this.batcher.nodes.length} instances enqueued, max is ${this.limits.instanceCount}`,
+        );
+        err.name = "ToodleInstanceCap";
+        throw err;
+      }
+
+      for (const layer of this.#batcher.layers) {
+        for (const pipeline of layer.pipelines) {
+          this.diagnostics.pipelineSwitches++;
+          this.diagnostics.drawCalls += pipeline.shader.processBatch(
+            this.#renderPass,
+            pipeline.nodes,
+          );
+        }
+      }
+
+      for (const pipeline of this.#batcher.pipelines) {
+        pipeline.shader.endFrame();
+      }
+      this.#renderPass.end();
+
+      blur(
+        this.#encoder,
+        this.#context,
+        this.#device,
+        this.clearColor,
+        this.#presentationFormat,
+        this.#pingpong,
+      );
+
+      this.#device.queue.submit([this.#encoder.finish()]);
+    } finally {
+      this.#batcher.flush();
+      this.#matrixPool.free();
+      this.diagnostics.frames++;
     }
-
-    for (const pipeline of this.#batcher.pipelines) {
-      pipeline.shader.endFrame();
-    }
-
-    this.#renderPass.end();
-
-    blur(
-      this.#encoder,
-      this.#context,
-      this.#device,
-      this.clearColor,
-      this.#presentationFormat,
-      this.#pingpong,
-    );
-
-    this.#device.queue.submit([this.#encoder.finish()]);
-    this.#batcher.flush();
-    this.#matrixPool.free();
-    this.diagnostics.frames++;
   }
 
   /**
@@ -447,7 +450,7 @@ export class Toodle {
   /**
    * Create a new quad node.
    *
-   * @param assetId - The ID of the asset to use for the quad. This must have been loaded with toodle.assets.loadTextures.
+   * @param assetId - The ID of the asset to use for the quad. This must have been loaded with toodle.assets.loadBundle.
    *
    * @param options - QuadOptions for Quad creation
    * @param options
@@ -479,6 +482,64 @@ export class Toodle {
 
     const quad = new QuadNode(options, this.#matrixPool);
     return quad;
+  }
+
+  /**
+   * Create a jumbo quad node. This contains multiple tiles for a single texture.
+   *
+   * @param assetId - The ID of the asset to use for the jumbo quad. This must have been loaded with toodle.assets.loadTextures.
+   *
+   * @param options - QuadOptions for Quad creation
+   *
+   */
+  JumboQuad(assetId: TextureId, options: JumboQuadOptions) {
+    options.shader ??= this.#defaultQuadShader();
+    options.textureId ??= assetId;
+    options.cropOffset ??= {
+      x: 0,
+      y: 0,
+    };
+    options.tiles ??= [];
+
+    // this holds the size of the full texture based on all of its tiles
+    const originalSize = {
+      width: 0,
+      height: 0,
+    };
+
+    for (const tile of options.tiles) {
+      if (!tile.size) {
+        tile.size = this.assets.getSize(tile.textureId);
+      }
+
+      if (!tile.atlasCoords) {
+        tile.atlasCoords = this.assets.extra.getAtlasCoords(tile.textureId)[0];
+      }
+
+      if (tile.offset.x + tile.size!.width > originalSize.width) {
+        originalSize.width = tile.offset.x + tile.size!.width;
+      }
+
+      if (tile.offset.y + tile.size!.height > originalSize.height) {
+        originalSize.height = tile.offset.y + tile.size!.height;
+      }
+    }
+
+    options.region ??= {
+      x: 0,
+      y: 0,
+      width: originalSize.width,
+      height: originalSize.height,
+    };
+
+    options.idealSize ??= {
+      width: originalSize.width,
+      height: originalSize.height,
+    };
+
+    options.atlasSize = this.#atlasSize;
+
+    return new JumboQuadNode(options, this.#matrixPool);
   }
 
   /**

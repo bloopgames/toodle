@@ -25,7 +25,7 @@ export type TextureRegion = UvRegion & {
  */
 export type UvRegion = {
   /**
-   * The offset of the UVs in normalized texels. Relative to the un-cropped texture.
+   * The offset of the UVs in normalized atlas texels. Relative to the un-cropped texture.
    *
    * @example
    *

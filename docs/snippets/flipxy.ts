@@ -1,4 +1,4 @@
-import { Toodle } from "@blooper.gg/toodle";
+import { Toodle } from "@bloop.gg/toodle";
 
 const canvas = document.querySelector("canvas")!;
 const toodle = await Toodle.attach(canvas, { filter: "nearest" });

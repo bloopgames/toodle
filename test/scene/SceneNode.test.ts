@@ -362,7 +362,7 @@ describe("SceneNode", () => {
           processBatch: () => 0,
           endFrame: () => {},
         },
-        writeInstance: () => {},
+        writeInstance: () => 0,
       };
 
       const node = new SceneNode({

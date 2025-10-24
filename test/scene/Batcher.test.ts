@@ -9,7 +9,7 @@ const render: RenderComponent = {
     processBatch: () => 0,
     endFrame: () => {},
   },
-  writeInstance: () => {},
+  writeInstance: () => 0,
 };
 
 function renderNodeFactory(label?: string) {
@@ -112,7 +112,7 @@ describe("Batcher", () => {
             startFrame: () => {},
             endFrame: () => {},
           },
-          writeInstance: () => {},
+          writeInstance: () => 0,
         },
       });
       const third = new SceneNode({ render });

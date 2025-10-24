@@ -7,7 +7,7 @@ You can bypass the Vintage SDK WebGpuPainter. This is the recommended path for a
 **src/toodleAdapter.ts**
 
 ```ts
-import { Toodle } from "@blooper.gg/toodle";
+import { Toodle } from "@bloop.gg/toodle";
 
 export function useToodle() {
   if (!(window as any).toodle) {

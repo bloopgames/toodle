@@ -1,5 +1,4 @@
 import { type Mat3, mat3, vec2 } from "wgpu-matrix";
-import type { Toodle } from "../Toodle";
 import type { Point } from "../coreTypes/Point";
 import type { Size } from "../coreTypes/Size";
 import type { Transform } from "../coreTypes/Transform";

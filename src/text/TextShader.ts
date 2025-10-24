@@ -4,8 +4,8 @@ import type { EngineUniform } from "../shaders/EngineUniform";
 import type { IShader } from "../shaders/IShader";
 import type { FontPipeline } from "./FontPipeline";
 import type { MsdfFont } from "./MsdfFont";
-import { DEFAULT_FONT_SIZE, TextNode } from "./TextNode";
 import { findLargestFontSize, measureText, shapeText } from "./shaping";
+import { DEFAULT_FONT_SIZE, TextNode } from "./TextNode";
 import msdfShader from "./text.wgsl";
 
 const deets = new WgslReflect(msdfShader);

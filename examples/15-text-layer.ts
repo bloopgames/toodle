@@ -1,4 +1,4 @@
-import { Toodle } from "@blooper.gg/toodle";
+import { Toodle } from "@bloop.gg/toodle";
 import { createCanvas } from "./util";
 
 const canvas = createCanvas(window.innerWidth, window.innerHeight);

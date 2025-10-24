@@ -1,9 +1,9 @@
 import type { Color } from "../coreTypes/Color";
 import { type NodeOptions, SceneNode } from "../scene/SceneNode";
 import type { MsdfFont } from "./MsdfFont";
+import { measureText } from "./shaping";
 import type { TextFormatting } from "./TextFormatting";
 import type { TextShader } from "./TextShader";
-import { measureText } from "./shaping";
 
 export const DEFAULT_FONT_SIZE = 14;
 

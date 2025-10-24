@@ -1,12 +1,12 @@
 import type { Theme } from "vitepress";
 import DefaultTheme from "vitepress/theme";
 // https://vitepress.dev/guide/custom-theme
+import type { Toodle } from "@bloop.gg/toodle";
 import { h } from "vue";
 import "./style.css";
-import type { Toodle } from "@blooper.gg/toodle";
 
 declare global {
-  var TOODLE: typeof import("@blooper.gg/toodle");
+  var TOODLE: typeof import("@bloop.gg/toodle");
   var GLOBAL_REGISTERED_TOODLES: Toodle[];
 }
 
@@ -19,7 +19,7 @@ export default {
   },
   async enhanceApp({ app, router, siteData }) {
     if (typeof window !== "undefined") {
-      const toodle = await import("@blooper.gg/toodle");
+      const toodle = await import("@bloop.gg/toodle");
       window.TOODLE = toodle;
       window.GLOBAL_REGISTERED_TOODLES = [];
 
