@@ -4,6 +4,10 @@ A detailed list of all notable changes for every released version.
 
 [All releases](https://www.npmjs.com/package/@bloop.gg/toodle)
 
+## [0.0.99](https://github.com/bloopgames/toodle/releases/tag/0.0.97)
+
+- Add low level api for post-process (fullscreen) shaders, see [post-process example](https://toodle.gg/examples/post-process.html)
+
 ## [0.0.97](https://github.com/bloopgames/toodle/releases/tag/0.0.97)
 
 - Add MIT license to package.json so it shows up on npm and gh.
