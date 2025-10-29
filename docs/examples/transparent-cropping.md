@@ -8,11 +8,6 @@ In this example, we load the same texture into two bundles - one with transparen
 
 From the developer perspective, the size will appear the same. But from a rendering perspective, the cropped texture will take up less memory and be offset by Toodle to be in the same position as the un-cropped texture.
 
-::: warning
-This feature is new and has not been rigorously tested.
-Please let us know if you encounter unexpected behavior.
-:::
-
 {toodle=snippets/transparent-cropping.ts width=400px height=400px}
 
 <<< @/snippets/transparent-cropping.ts

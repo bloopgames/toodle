@@ -17,6 +17,7 @@ import { type NodeOptions, SceneNode } from "./scene/SceneNode";
 import type { Resolution } from "./screen/resolution";
 import type { EngineUniform } from "./shaders/EngineUniform";
 import type { IShader } from "./shaders/IShader";
+import type { PostProcess } from "./shaders/postprocess/mod";
 import { QuadShader } from "./shaders/QuadShader";
 import { TextNode, type TextOptions } from "./text/TextNode";
 import { AssetManager, type TextureId } from "./textures/AssetManager";
@@ -67,8 +68,10 @@ export class Toodle {
   #device: GPUDevice;
   #context: GPUCanvasContext;
   #presentationFormat: GPUTextureFormat;
+  #postprocess: PostProcess | null = null;
   #renderPass?: GPURenderPassEncoder;
   #encoder?: GPUCommandEncoder;
+  #pingpong!: [GPUTexture, GPUTexture];
   #defaultFilter: GPUFilterMode;
   #matrixPool: Pool<Mat3>;
   #atlasSize: Size;
@@ -110,9 +113,30 @@ export class Toodle {
     };
     this.#resolution = resolution;
 
+    this.#createPingPongTextures(resolution);
     this.resize(this.#resolution);
 
     this.#resizeObserver = this.#createResizeObserver(canvas);
+  }
+
+  /**
+   * Screen shader is an optional slot for post-processing effects.
+   * Note that this will do the main render pass to an offscreen texture, which may impact performance.
+   */
+  get postprocess() {
+    return this.#postprocess;
+  }
+
+  set postprocess(value: PostProcess | null) {
+    this.#postprocess = value;
+    const hasChanged =
+      this.#resolution.width !==
+        this.#pingpong[0].width / window.devicePixelRatio ||
+      this.#resolution.height !==
+        this.#pingpong[0].height / window.devicePixelRatio;
+    if (value != null && hasChanged) {
+      this.#createPingPongTextures(this.#resolution);
+    }
   }
 
   /**
@@ -135,7 +159,43 @@ export class Toodle {
    */
   resize(resolution: Resolution) {
     createProjectionMatrix(resolution, this.#projectionMatrix);
+
+    const hasChanged =
+      resolution.width !== this.#resolution.width ||
+      resolution.height !== this.#resolution.height;
+    if (this.postprocess && hasChanged) {
+      this.#pingpong[0].destroy();
+      this.#pingpong[1].destroy();
+    }
     this.#resolution = resolution;
+  }
+
+  #createPingPongTextures(resolution: Resolution) {
+    if (this.#pingpong?.length) {
+      this.#pingpong[0].destroy();
+      this.#pingpong[1].destroy();
+    }
+
+    this.#pingpong = [
+      this.#device.createTexture({
+        size: {
+          width: resolution.width * window.devicePixelRatio,
+          height: resolution.height * window.devicePixelRatio,
+        },
+        format: this.#presentationFormat,
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+      }),
+      this.#device.createTexture({
+        size: {
+          width: resolution.width * window.devicePixelRatio,
+          height: resolution.height * window.devicePixelRatio,
+        },
+        format: this.#presentationFormat,
+        usage:
+          GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
+      }),
+    ];
   }
 
   #createResizeObserver(canvas: HTMLCanvasElement) {
@@ -247,11 +307,14 @@ export class Toodle {
    */
   startFrame(options?: StartFrameOptions) {
     this.#encoder = this.#device.createCommandEncoder();
+    const target = this.postprocess
+      ? this.#pingpong[0]
+      : this.#context.getCurrentTexture();
     this.#renderPass = this.#encoder.beginRenderPass({
       label: `toodle frame ${this.diagnostics.frames}`,
       colorAttachments: [
         {
-          view: this.#context.getCurrentTexture().createView(),
+          view: target.createView(),
           clearValue: this.clearColor,
           loadOp: options?.loadOp ?? "clear",
           storeOp: "store",
@@ -332,6 +395,15 @@ export class Toodle {
         pipeline.shader.endFrame();
       }
       this.#renderPass.end();
+
+      if (this.postprocess) {
+        this.postprocess.process(
+          this.#device.queue,
+          this.#encoder,
+          this.#pingpong,
+          this.#context.getCurrentTexture(),
+        );
+      }
       this.#device.queue.submit([this.#encoder.finish()]);
     } finally {
       this.#batcher.flush();

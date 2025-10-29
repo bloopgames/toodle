@@ -74,6 +74,7 @@ export default defineConfig({
           { text: "Default shader", link: "/examples/shader-default" },
           { text: "Color Flash", link: "/examples/shader-color-flash" },
           { text: "Fill", link: "/examples/shader-fill" },
+          { text: "Post Process", link: "/examples/post-process" }
         ],
       },
       {
@@ -89,15 +90,6 @@ export default defineConfig({
           {
             text: "Screen and World Space",
             link: "/examples/layout-screen-and-world-space",
-          },
-        ],
-      },
-      {
-        text: "Vintage SDK Integration",
-        items: [
-          {
-            text: "Using Toodle in the Vintage SDK",
-            link: "/examples/vintage-sdk-integration",
           },
         ],
       },
@@ -168,7 +160,7 @@ export default defineConfig({
           <ClientOnly>
             <canvas id="${canvasId}" style="width: 100%; aspect-ratio: 16/9;"></canvas>
             <component is="script" type="module">
-              ${js.outputText}
+              ${js.outputText.replace('<', '&lt;').replace('>', '&gt;')}
             </component>
           </ClientOnly>
           `;
