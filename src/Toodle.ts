@@ -171,6 +171,11 @@ export class Toodle {
   }
 
   #createPingPongTextures(resolution: Resolution) {
+    if (this.#pingpong?.length) {
+      this.#pingpong[0].destroy();
+      this.#pingpong[1].destroy();
+    }
+
     this.#pingpong = [
       this.#device.createTexture({
         size: {
