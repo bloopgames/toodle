@@ -18,7 +18,7 @@ import type { Resolution } from "./screen/resolution";
 import type { EngineUniform } from "./shaders/EngineUniform";
 import type { IShader } from "./shaders/IShader";
 import type { PostProcess } from "./shaders/postprocess/mod";
-import { QuadShader } from "./shaders/QuadShader";
+import { QuadShader, type QuadShaderOpts } from "./shaders/QuadShader";
 import { TextNode, type TextOptions } from "./text/TextNode";
 import { AssetManager, type TextureId } from "./textures/AssetManager";
 import { initGpu } from "./utils/boilerplate";
@@ -341,7 +341,11 @@ export class Toodle {
    * toodle.endFrame();
    */
   draw(node: SceneNode) {
-    this.assets.validateTextureReference(node);
+    if (node instanceof QuadNode) {
+      node.assetManager.validateTextureReference(node);
+    } else {
+      this.assets.validateTextureReference(node);
+    }
     this.#batcher.enqueue(node);
   }
 
@@ -473,16 +477,16 @@ export class Toodle {
     label: string,
     instanceCount: number,
     userCode: string,
-    blendMode?: GPUBlendState,
+    shaderOpts?: QuadShaderOpts,
   ) {
     return new QuadShader(
       label,
-      this.assets,
+      shaderOpts?.assetManager ?? this.assets,
       this.#device,
       this.#presentationFormat,
       userCode,
       instanceCount,
-      blendMode,
+      shaderOpts?.blendMode,
     );
   }
 
@@ -505,11 +509,13 @@ export class Toodle {
    * toodle.endFrame();
    */
   Quad(assetId: TextureId, options: QuadOptions = {}) {
-    options.idealSize ??= this.assets.getSize(assetId);
+    const assetManager = options.assetManager ?? this.assets;
+    options.idealSize ??= assetManager.getSize(assetId);
     options.shader ??= this.#defaultQuadShader();
-    options.atlasCoords ??= this.assets.extra.getAtlasCoords(assetId)[0];
+    options.atlasCoords ??= assetManager.extra.getAtlasCoords(assetId)[0];
     options.textureId ??= assetId;
-    options.cropOffset ??= this.assets.extra.getTextureOffset(assetId);
+    options.cropOffset ??= assetManager.extra.getTextureOffset(assetId);
+    options.assetManager = assetManager;
 
     options.atlasSize = this.#atlasSize;
     options.region ??= {
@@ -519,6 +525,7 @@ export class Toodle {
       height: options.atlasCoords.uvScale.height * this.#atlasSize.height,
     };
 
+    options.assetManager = assetManager;
     const quad = new QuadNode(options, this.#matrixPool);
     return quad;
   }
@@ -578,6 +585,8 @@ export class Toodle {
 
     options.atlasSize = this.#atlasSize;
 
+    options.assetManager = this.assets;
+
     return new JumboQuadNode(options, this.#matrixPool);
   }
 
@@ -612,6 +621,7 @@ export class Toodle {
         cropOffset: { x: 0, y: 0 },
         originalSize: { width: 1, height: 1 },
       };
+      options.assetManager = this.assets;
 
       const quad = new QuadNode(options, this.#matrixPool);
 
@@ -640,7 +650,7 @@ export class Toodle {
         cropOffset: { x: 0, y: 0 },
         originalSize: { width: 1, height: 1 },
       };
-
+      options.assetManager = this.assets;
       const quad = new QuadNode(options, this.#matrixPool);
 
       if (options?.position) {
@@ -687,6 +697,7 @@ export class Toodle {
           layer: options.layer,
           key: options.key,
           rotationRadians: angle,
+          assetManager: this.assets,
           scale: {
             x: length,
             y: options.thickness ?? 1,

@@ -140,9 +140,12 @@ export async function packBitmapsToAtlas(
     }
 
     if (bestSpace === -1) {
+      const tex = await createTextureAtlasTexture(device, packed, textureSize);
       cpuTextureAtlases.push({
-        texture: await createTextureAtlasTexture(device, packed, textureSize),
+        texture: tex,
         textureRegions: atlasRegionMap,
+        width: tex.width,
+        height: tex.height,
       });
 
       atlasRegionMap = new Map<string, TextureRegion>();
@@ -215,9 +218,13 @@ export async function packBitmapsToAtlas(
       originalSize,
     });
   }
+  const tex = await createTextureAtlasTexture(device, packed, textureSize);
+
   cpuTextureAtlases.push({
-    texture: await createTextureAtlasTexture(device, packed, textureSize),
+    texture: tex,
     textureRegions: atlasRegionMap,
+    width: tex.width,
+    height: tex.height,
   });
 
   return cpuTextureAtlases;

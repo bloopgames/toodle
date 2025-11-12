@@ -23,6 +23,11 @@ import {
 import { pixelArtSampler, smoothSampler } from "./samplers";
 import quadWgsl from "./wgsl/quad.wgsl";
 
+export type QuadShaderOpts = {
+  assetManager?: AssetManager;
+  blendMode?: GPUBlendState;
+};
+
 export class QuadShader implements IShader {
   label: string;
   code: string;
@@ -122,7 +127,6 @@ export class QuadShader implements IShader {
     userCode: string,
     instanceCount: number,
     blendMode?: GPUBlendState,
-    sampleType?: "linear" | "nearest",
   ) {
     this.label = label;
 
@@ -278,7 +282,7 @@ function setQuadBindGroups(
 }
 
 type InstanceData = {
-  cpuBuffer: Float32Array;
+  cpuBuffer: Float32Array<ArrayBuffer>;
   gpuBuffer: GPUBuffer;
   bufferLayout: GPUVertexBufferLayout;
 };

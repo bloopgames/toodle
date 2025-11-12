@@ -4,7 +4,7 @@ import type { Size } from "../coreTypes/Size";
 import type { Vec2 } from "../coreTypes/Vec2";
 import type { IShader } from "../shaders/IShader";
 import type { Toodle } from "../Toodle";
-import type { TextureId } from "../textures/AssetManager";
+import type { AssetManager, TextureId } from "../textures/AssetManager";
 import type { AtlasCoords, TexelRegion } from "../textures/types";
 import { assert } from "../utils/assert";
 import type { Pool } from "../utils/pool";
@@ -30,6 +30,8 @@ const DEFAULT_REGION: TexelRegion = {
  * the wrapper class {@link Toodle.Quad} instead.
  */
 export class QuadNode extends SceneNode {
+  assetManager: AssetManager;
+
   #color: Color;
   #atlasCoords: AtlasCoords;
   #region: TexelRegion;
@@ -71,6 +73,9 @@ export class QuadNode extends SceneNode {
     };
 
     super(options);
+
+    assert(options.assetManager, "QuadNode requires an asset manager");
+    this.assetManager = options.assetManager;
 
     if (
       options.atlasCoords &&
@@ -297,6 +302,8 @@ export type QuadOptions = NodeOptions & {
    * from the texture atlas.
    */
   atlasCoords?: AtlasCoords;
+
+  assetManager?: AssetManager;
 
   shader?: IShader;
   writeInstance?: (array: Float32Array, offset: number) => void;

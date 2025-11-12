@@ -4,6 +4,12 @@ A detailed list of all notable changes for every released version.
 
 [All releases](https://www.npmjs.com/package/@bloop.gg/toodle)
 
+## [0.0.100](https://github.com/bloopgames/toodle/releases/tag/0.0.100)
+
+- Add `assetManager` option to `Toodle.Quad` and `Toodle.QuadShader`, allowing quads to use a different texture array, for eg an array of rg8 atlases.
+- Expose `AssetManager` directly to allow more control over texture atlases.
+- Breaking: shader constructor no longer accepts `BlendMode` as a positional argument, use the `blendMode` option in opts instead.
+
 ## [0.0.99](https://github.com/bloopgames/toodle/releases/tag/0.0.97)
 
 - Add low level api for post-process (fullscreen) shaders, see [post-process example](https://toodle.gg/examples/post-process.html)
@@ -107,13 +113,13 @@ See the [transparent cropping example](https://toodle.gg/examples/transparent-cr
 
 ```ts
 // before - constructor for Quad and shapes interpreted rotation as radians
-const node = toodle.shapes.Rect({ rotation: Math.PI / 2});
+const node = toodle.shapes.Rect({ rotation: Math.PI / 2 });
 // but the `rotation` property was interpreted as degrees
 node.rotation = 90;
 
 // after - both consistently interpret `rotation` as degrees and `rotationRadians` as radians
-toodle.shapes.Rect({ rotation: 90})
-toodle.shapes.Rect({ rotationRadians: Math.PI / 2})
+toodle.shapes.Rect({ rotation: 90 });
+toodle.shapes.Rect({ rotationRadians: Math.PI / 2 });
 ```
 
 ## [0.0.65](https://github.com/bloopgames/toodle/releases/tag/0.0.65)

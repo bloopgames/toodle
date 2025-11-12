@@ -7,6 +7,7 @@ import type { SceneNode } from "../scene/SceneNode";
 import { FontPipeline } from "../text/FontPipeline";
 import { MsdfFont } from "../text/MsdfFont";
 import { TextShader } from "../text/TextShader";
+import { assert } from "../utils/mod";
 import { TextureComputeShader } from "./TextureComputeShader";
 import type {
   AtlasBundleOpts,
@@ -44,6 +45,7 @@ export class AssetManager {
     device: GPUDevice,
     presentationFormat: GPUTextureFormat,
     limits: Limits,
+    format: "rgba8unorm" | "rg8unorm" = "rgba8unorm",
   ) {
     this.#device = device;
     this.#presentationFormat = presentationFormat;
@@ -55,7 +57,7 @@ export class AssetManager {
         this.#limits.textureSize,
         this.#limits.textureArrayLayers,
       ],
-      format: "rgba8unorm",
+      format,
       usage:
         GPUTextureUsage.TEXTURE_BINDING |
         GPUTextureUsage.COPY_DST |
@@ -429,6 +431,7 @@ export class AssetManager {
 
   async #registerBundleFromAtlases(bundleId: BundleId, opts: AtlasBundleOpts) {
     const atlases: CpuTextureAtlas[] = [];
+
     for (const atlas of opts.atlases) {
       const jsonUrl =
         atlas.json ??
@@ -444,11 +447,41 @@ export class AssetManager {
         );
 
       const atlasDef = await (await fetch(jsonUrl)).json();
-      const bitmap = await getBitmapFromUrl(pngUrl);
+      const bitmap = !opts.rg8
+        ? await getBitmapFromUrl(pngUrl)
+        : await createImageBitmap(new ImageData(1, 1)); // placeholder bitmap if using rg8
+
+      let rg8Bytes: Uint8Array<ArrayBuffer> | undefined;
+      if (opts.rg8) {
+        const rg8url = new URL(
+          pngUrl.toString().replace(".png", ".rg8.gz"),
+          pngUrl.origin,
+        );
+        const rgBytes = await fetch(rg8url).then(async (r) => {
+          const enc = (r.headers.get("content-encoding") || "").toLowerCase();
+          // If server/CDN already set Content-Encoding, Fetch returns decompressed bytes.
+          if (
+            enc.includes("gzip") ||
+            enc.includes("br") ||
+            enc.includes("deflate")
+          ) {
+            return new Uint8Array(await r.arrayBuffer());
+          }
+
+          assert(r.body, "Response body of rg8 file is null");
+          const ds = new DecompressionStream("gzip");
+          const ab = await new Response(r.body.pipeThrough(ds)).arrayBuffer();
+          return new Uint8Array(ab);
+        });
+        rg8Bytes = rgBytes;
+      }
 
       const cpuTextureAtlas: CpuTextureAtlas = {
         texture: bitmap,
+        rg8Bytes,
         textureRegions: new Map(),
+        width: opts.rg8 ? this.#limits.textureSize : bitmap.width,
+        height: opts.rg8 ? this.#limits.textureSize : bitmap.height,
       };
 
       for (const [assetId, frame] of Object.entries(atlasDef.frames) as [
@@ -476,16 +509,16 @@ export class AssetManager {
             height: frame.sourceSize.h,
           },
           uvOffset: {
-            x: frame.frame.x / bitmap.width,
-            y: frame.frame.y / bitmap.height,
+            x: frame.frame.x / cpuTextureAtlas.width,
+            y: frame.frame.y / cpuTextureAtlas.height,
           },
           uvScale: {
-            width: frame.sourceSize.w / bitmap.width,
-            height: frame.sourceSize.h / bitmap.height,
+            width: frame.sourceSize.w / cpuTextureAtlas.width,
+            height: frame.sourceSize.h / cpuTextureAtlas.height,
           },
           uvScaleCropped: {
-            width: frame.frame.w / bitmap.width,
-            height: frame.frame.h / bitmap.height,
+            width: frame.frame.w / cpuTextureAtlas.width,
+            height: frame.frame.h / cpuTextureAtlas.height,
           },
         });
       }
@@ -611,16 +644,35 @@ export class AssetManager {
      */
     loadAtlas: async (atlas: CpuTextureAtlas) => {
       const atlasIndex = this.extra.nextAvailableAtlasIndex();
-      this.#device.queue.copyExternalImageToTexture(
-        {
-          source: atlas.texture,
-        },
-        {
-          texture: this.textureAtlas,
-          origin: [0, 0, atlasIndex],
-        },
-        [atlas.texture.width, atlas.texture.height, 1],
-      );
+
+      if (atlas.rg8Bytes) {
+        const { width: w, height: h } = {
+          width: this.textureAtlas.width,
+          height: this.textureAtlas.height,
+        };
+
+        // WebGPU requires 256-byte bytesPerRow
+        const rowBytes = w * 2;
+        assert(rowBytes % 256 === 0, "rowBytes must be a multiple of 256");
+
+        this.#device.queue.writeTexture(
+          { texture: this.textureAtlas, origin: { x: 0, y: 0, z: atlasIndex } },
+          atlas.rg8Bytes,
+          { bytesPerRow: rowBytes, rowsPerImage: h },
+          { width: w, height: h, depthOrArrayLayers: 1 },
+        );
+      } else {
+        this.#device.queue.copyExternalImageToTexture(
+          {
+            source: atlas.texture,
+          },
+          {
+            texture: this.textureAtlas,
+            origin: [0, 0, atlasIndex],
+          },
+          [atlas.texture.width, atlas.texture.height, 1],
+        );
+      }
 
       for (const [id, region] of atlas.textureRegions) {
         const existing = this.#textures.get(id);

@@ -1,3 +1,12 @@
+import { AssetManager } from "./textures/AssetManager";
+
+export type * from "./coreTypes/mod";
+
+export type * from "./scene/QuadNode";
+export type * from "./scene/SceneNode";
+export type * from "./shaders/QuadShader";
+export type * from "./text/TextNode";
+
 export * from "./limits";
 export * from "./Toodle";
 
@@ -10,9 +19,4 @@ export * as Text from "./text/mod";
 export * as Textures from "./textures/mod";
 export * as Utils from "./utils/mod";
 
-export type * from "./coreTypes/mod";
-
-export type * from "./scene/QuadNode";
-export type * from "./scene/SceneNode";
-export type * from "./shaders/QuadShader";
-export type * from "./text/TextNode";
+export { AssetManager } from "./textures/AssetManager";

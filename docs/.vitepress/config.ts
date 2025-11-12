@@ -92,7 +92,7 @@ export default defineConfig({
             link: "/examples/layout-screen-and-world-space",
           },
         ],
-      },
+      }
     ],
 
     editLink: {

@@ -57,7 +57,10 @@ export type UvRegion = {
  */
 export type CpuTextureAtlas = {
   texture: ImageBitmap;
+  rg8Bytes?: Uint8Array<ArrayBuffer>;
   textureRegions: Map<string, TextureRegion>;
+  width: number;
+  height: number;
 };
 
 /**
@@ -135,6 +138,12 @@ export type AtlasBundleOpts = {
    * Whether the bundle should be loaded automatically on registration
    */
   autoLoad?: boolean;
+
+  /**
+   * If true, png urls will be ignored and the texture path will be inferred to be next to the json file
+   * with a .rg8.gz extension.
+   */
+  rg8?: boolean;
 };
 
 /**
