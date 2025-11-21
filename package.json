@@ -1,6 +1,6 @@
 {
-  "name": "@bloop.gg/toodle",
-  "version": "0.0.94",
+  "name": "@bloopjs/toodle",
+  "version": "0.0.100",
   "type": "module",
   "files": ["dist", "src"],
   "license": "MIT",

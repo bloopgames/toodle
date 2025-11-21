@@ -6,10 +6,6 @@ if (status.byteLength !== 0 && !process.env.FORCE) {
   throw new Error("git status is not empty, please commit or stash changes before publishing")
 }
 
-if (!process.env.NPM_TOKEN) {
-  throw new Error("NPM_TOKEN is not set in the environment, publish will fail.")
-}
-
 
 const remoteVersion = await getRemoteVersion(packageJson.name)
 const npmVersion = remoteVersion.split(".").map((str) => Number.parseInt(str))
@@ -39,8 +35,7 @@ await $`echo ${JSON.stringify(packageJson, null, 2)} > package.json`
 await $`bun run build`
 await $`git tag "${packageJson.version}"`
 await $`git push --tags`
-await Bun.write(".npmrc", `//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`)
-await $`bun publish`
+await $`npm publish --access public`;
 
 async function getRemoteVersion(name: string) {
   const results = await fetch(`https://registry.npmjs.org/${name}`)
