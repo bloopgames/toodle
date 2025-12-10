@@ -5,7 +5,8 @@
       "Bash(xargs:*)",
       "Bash(find:*)",
       "Bash(bun install:*)",
-      "Bash(bun run ci)"
+      "Bash(bun run ci)",
+      "WebFetch(domain:github.com)"
     ]
   }
 }
