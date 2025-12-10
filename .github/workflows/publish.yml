@@ -5,9 +5,10 @@ on:
     branches:
       - main
       - nu11/actions
-      - nu11/rename-package
     paths:
       - "src/**"
+      - ".github/workflows/publish.yml"
+      - "scripts/publish.ts"
       - "package.json"
 
   workflow_dispatch:
