@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cat:*)",
+      "Bash(xargs:*)",
+      "Bash(find:*)",
+      "Bash(bun install:*)",
+      "Bash(bun run ci)",
+      "WebFetch(domain:github.com)"
+    ]
+  }
+}

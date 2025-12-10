@@ -1,4 +1,4 @@
-import { Toodle } from "@bloop.gg/toodle";
+import { Toodle } from "@bloopjs/toodle";
 
 const canvas = document.querySelector("canvas")!;
 

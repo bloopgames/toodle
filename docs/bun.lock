@@ -1,10 +1,11 @@
 {
   "lockfileVersion": 1,
+  "configVersion": 0,
   "workspaces": {
     "": {
       "name": "docs",
       "dependencies": {
-        "@bloop.gg/toodle": "../",
+        "@bloopjs/toodle": "../",
       },
       "devDependencies": {
         "@types/bun": "latest",
@@ -83,7 +84,7 @@
 
     "@biomejs/cli-win32-x64": ["@biomejs/cli-win32-x64@2.1.4", "", { "os": "win32", "cpu": "x64" }, "sha512-tBc+W7anBPSFXGAoQW+f/+svkpt8/uXfRwDzN1DvnatkRMt16KIYpEi/iw8u9GahJlFv98kgHcIrSsZHZTR0sw=="],
 
-    "@bloop.gg/toodle": ["@bloop.gg/toodle@file:..", { "dependencies": { "fflate": "^0.8.2", "webgpu-utils": "^1.9.3", "wgpu-matrix": "^3.3.0", "wgsl_reflect": "^1.0.14" }, "devDependencies": { "@biomejs/biome": "^2.1.2", "@types/bun": "^1.1.13", "@webgpu/types": "^0.1.51", "vite": "^5.4.11" }, "peerDependencies": { "typescript": "^5.7.2" } }],
+    "@bloopjs/toodle": ["@bloopjs/toodle@file:..", { "dependencies": { "fflate": "^0.8.2", "webgpu-utils": "^1.9.3", "wgpu-matrix": "^3.3.0", "wgsl_reflect": "^1.0.14" }, "devDependencies": { "@biomejs/biome": "^2.1.2", "@types/bun": "^1.1.13", "@webgpu/types": "^0.1.51", "vite": "^5.4.11" }, "peerDependencies": { "typescript": "^5.7.2" } }],
 
     "@docsearch/css": ["@docsearch/css@3.8.2", "", {}, "sha512-y05ayQFyUmCXze79+56v/4HpycYF3uFqB78pLPrSV5ZKAlDuIAAJNhaRi8tTdRNXh05yxX/TyNnzD6LwSM89vQ=="],
 

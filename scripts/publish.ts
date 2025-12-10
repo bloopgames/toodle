@@ -6,8 +6,10 @@ if (status.byteLength !== 0 && !process.env.FORCE) {
   throw new Error("git status is not empty, please commit or stash changes before publishing")
 }
 
-if (!process.env.NPM_TOKEN) {
-  throw new Error("NPM_TOKEN is not set in the environment, publish will fail.")
+// OIDC is used in CI (GitHub Actions), NPM_TOKEN is fallback for local publishing
+const useOidc = process.env.GITHUB_ACTIONS === "true"
+if (!useOidc && !process.env.NPM_TOKEN) {
+  throw new Error("NPM_TOKEN is not set in the environment. Set NPM_TOKEN for local publishing, or run in GitHub Actions for OIDC.")
 }
 
 
@@ -37,10 +39,26 @@ for (const [key, value] of Object.entries(packageJson.exports)) {
 
 await $`echo ${JSON.stringify(packageJson, null, 2)} > package.json`
 await $`bun run build`
-await $`git tag "${packageJson.version}"`
+
+// Publish to npm first - only create tag if publish succeeds
+if (useOidc) {
+  // OIDC provenance - no token needed, GitHub provides identity
+  await $`npm publish --provenance --access public`
+} else {
+  // Classic NPM_TOKEN auth
+  await Bun.write(".npmrc", `//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`)
+  await $`bun publish`
+}
+
+// Tag and push only after successful publish
+// Check if tag already exists (e.g., from a previous failed run that was manually fixed)
+const tagExists = await $`git tag -l "${packageJson.version}"`.text()
+if (tagExists.trim()) {
+  console.log(`Tag ${packageJson.version} already exists locally, pushing...`)
+} else {
+  await $`git tag "${packageJson.version}"`
+}
 await $`git push --tags`
-await Bun.write(".npmrc", `//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`)
-await $`bun publish`
 
 async function getRemoteVersion(name: string) {
   const results = await fetch(`https://registry.npmjs.org/${name}`)
