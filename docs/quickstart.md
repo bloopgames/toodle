@@ -13,7 +13,7 @@ bun create vite
 ## Add toodle
 
 ```bash
-bun add @bloop.gg/toodle
+bun add @bloopjs/toodle
 ```
 
 ## Draw a kitten at 0,0

@@ -2,7 +2,7 @@
 
 A detailed list of all notable changes for every released version.
 
-[All releases](https://www.npmjs.com/package/@bloop.gg/toodle)
+[All releases](https://www.npmjs.com/package/@bloopjs/toodle)
 
 ## [0.0.100](https://github.com/bloopgames/toodle/releases/tag/0.0.100)
 

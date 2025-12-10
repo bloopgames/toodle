@@ -2,7 +2,7 @@
   "name": "docs",
   "module": "index.ts",
   "dependencies": {
-    "@bloop.gg/toodle": "../"
+    "@bloopjs/toodle": "../"
   },
   "devDependencies": {
     "@types/bun": "latest",

@@ -1,4 +1,4 @@
-import { Toodle, Colors, Shaders } from "@bloop.gg/toodle";
+import { Toodle, Colors, Shaders } from "@bloopjs/toodle";
 import { createCanvas } from "./util";
 
 const canvas = createCanvas(window.innerWidth, window.innerHeight);

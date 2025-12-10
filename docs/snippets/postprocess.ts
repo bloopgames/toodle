@@ -1,4 +1,4 @@
-import { Toodle, Colors, Shaders } from "@bloop.gg/toodle";
+import { Toodle, Colors, Shaders } from "@bloopjs/toodle";
 
 const canvas = document.querySelector("canvas")!;
 const toodle = await Toodle.attach(canvas, { filter: "linear" });

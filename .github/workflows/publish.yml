@@ -5,6 +5,7 @@ on:
     branches:
       - main
       - nu11/actions
+      - nu11/rename-package
     paths:
       - "src/**"
       - "package.json"
@@ -13,9 +14,7 @@ on:
 
 permissions:
   contents: write
-
-env:
-  NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+  id-token: write  # Required for npm OIDC provenance
 
 jobs:
   publish:

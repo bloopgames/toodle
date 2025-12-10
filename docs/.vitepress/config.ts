@@ -204,7 +204,7 @@ export default defineConfig({
  *
  * Example, transforms the following:
  *
- * import { Toodle, Quad } from '@bloop.gg/toodle'
+ * import { Toodle, Quad } from '@bloopjs/toodle'
  * const canvas = document.querySelector("canvas")!;
  *
  * into the following:
