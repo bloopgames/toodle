@@ -39,9 +39,8 @@ for (const [key, value] of Object.entries(packageJson.exports)) {
 
 await $`echo ${JSON.stringify(packageJson, null, 2)} > package.json`
 await $`bun run build`
-await $`git tag "${packageJson.version}"`
-await $`git push --tags`
 
+// Publish to npm first - only create tag if publish succeeds
 if (useOidc) {
   // OIDC provenance - no token needed, GitHub provides identity
   await $`npm publish --provenance --access public`
@@ -50,6 +49,16 @@ if (useOidc) {
   await Bun.write(".npmrc", `//registry.npmjs.org/:_authToken=${process.env.NPM_TOKEN}`)
   await $`bun publish`
 }
+
+// Tag and push only after successful publish
+// Check if tag already exists (e.g., from a previous failed run that was manually fixed)
+const tagExists = await $`git tag -l "${packageJson.version}"`.text()
+if (tagExists.trim()) {
+  console.log(`Tag ${packageJson.version} already exists locally, pushing...`)
+} else {
+  await $`git tag "${packageJson.version}"`
+}
+await $`git push --tags`
 
 async function getRemoteVersion(name: string) {
   const results = await fetch(`https://registry.npmjs.org/${name}`)
