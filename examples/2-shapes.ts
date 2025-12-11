@@ -30,14 +30,14 @@ const rect2 = toodle.shapes.Rect({
   position: { x: 50, y: 50 },
   scale: { x: 100, y: 100 },
   shader,
-  idealSize: { width: 1, height: 1 },
+  size: { width: 1, height: 1 },
 });
 rect2.color = { r: 0, g: 0, b: 1, a: 1 };
 
 const circle = toodle.shapes.Circle({
   position: { x: 30, y: 30 },
   scale: { x: 50, y: 50 },
-  idealSize: { width: 1, height: 1 },
+  size: { width: 1, height: 1 },
   color: { r: 0, g: 1, b: 1, a: 1 },
 });
 

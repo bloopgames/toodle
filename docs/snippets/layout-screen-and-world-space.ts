@@ -21,7 +21,7 @@ canvas.addEventListener("mousemove", (ev) => {
 });
 
 const rect = toodle.shapes.Rect({
-  idealSize: {
+  size: {
     width: 100,
     height: 100,
   },
@@ -63,7 +63,7 @@ function frame() {
         {
           position: { x: 100, y: -100 },
           color: { r: 0, g: 0, b: 0, a: 1 },
-          idealSize: { width: 100, height: 35 },
+          size: { width: 100, height: 35 },
         },
       )
       .setBounds({

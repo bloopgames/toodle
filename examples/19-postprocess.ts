@@ -193,7 +193,7 @@ const postprocess: Shaders.PostProcess = {
 (function frame() {
   toodle.startFrame();
   toodle.draw(toodle.shapes.Circle({
-    idealSize: { width: 100, height: 100 },
+    size: { width: 100, height: 100 },
     color: Colors.web.cornflowerBlue,
     position: { x: Math.sin(performance.now() / 1000) * 150, y: Math.cos(performance.now() / 1000) * 150 },
   }));

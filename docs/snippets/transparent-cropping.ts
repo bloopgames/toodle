@@ -123,7 +123,7 @@ function frame() {
       toodle
         .Quad(textureId, {
           shader: showTransparentPixelsShader,
-          idealSize: { width: 50, height: 50 },
+          size: { width: 50, height: 50 },
         })
         .setBounds({
           left: -toodle.resolution.width / 2,
@@ -135,7 +135,7 @@ function frame() {
       toodle
         .Quad(textureId, {
           shader: showTransparentPixelsShader,
-          idealSize: { width: 50, height: 50 },
+          size: { width: 50, height: 50 },
           rotation: 45,
         })
         .setBounds({
@@ -147,14 +147,14 @@ function frame() {
     if (state.useOptimized) {
       toodle.draw(
         toodle.Quad("Mew", {
-          idealSize: { width: 400, height: 400 },
+          size: { width: 400, height: 400 },
           shader: atlasPreviewShader,
         }),
       );
     } else {
       toodle.draw(
         toodle.Quad("MewTwo", {
-          idealSize: { width: 400, height: 400 },
+          size: { width: 400, height: 400 },
           shader: atlasPreviewShader,
         }),
       );

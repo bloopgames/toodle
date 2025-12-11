@@ -57,10 +57,7 @@ export class QuadNode extends SceneNode {
       options.shader,
       "QuadNode requires a shader to be explicitly provided",
     );
-    assert(
-      options.idealSize,
-      "QuadNode requires an ideal size to be explicitly provided",
-    );
+    assert(options.size, "QuadNode requires a size to be explicitly provided");
 
     assert(
       options.atlasCoords,

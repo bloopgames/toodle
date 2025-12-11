@@ -14,13 +14,13 @@ canvas.style.width = "100vw";
 canvas.style.height = "100vh";
 
 const shape = toodle.shapes.Rect({
-  idealSize: { width: 100, height: 100 },
+  size: { width: 100, height: 100 },
   color: { r: 1, g: 0, b: 0, a: 1 },
 });
 
 shape.add(
   toodle.shapes.Rect({
-    idealSize: { width: 1, height: 1 },
+    size: { width: 1, height: 1 },
     color: { r: 0, g: 0, b: 0, a: 1 },
   }),
 );
@@ -30,7 +30,7 @@ function frame() {
   // this should take up the whole screen minus one pixel on each side
   toodle.draw(
     toodle.shapes.Rect({
-      idealSize: {
+      size: {
         width: toodle.resolution.width - 2,
         height: toodle.resolution.height - 2,
       },
@@ -44,7 +44,7 @@ function frame() {
   // these should be cyan rects that are at the top left and bottom right of the screen
   toodle.draw(
     toodle.shapes.Rect({
-      idealSize: { width: 10, height: 10 },
+      size: { width: 10, height: 10 },
       color: { r: 0, g: 1, b: 1, a: 1 },
       position: {
         x: -toodle.resolution.width / 2 + 10 / 2 + 1,
@@ -54,7 +54,7 @@ function frame() {
   );
   toodle.draw(
     toodle.shapes.Rect({
-      idealSize: { width: 10, height: 10 },
+      size: { width: 10, height: 10 },
       color: { r: 0, g: 1, b: 1, a: 1 },
       position: {
         x: toodle.resolution.width / 2 - 10 / 2 - 1,

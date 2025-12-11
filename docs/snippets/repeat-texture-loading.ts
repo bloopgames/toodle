@@ -46,13 +46,13 @@ toodle.startFrame();
 // But a draw call to `ItemSpinach` or `SeaSaltIceCream` will still work perfectly fine!
 toodle.draw(
   toodle.Quad("ItemSpinach", {
-    idealSize: { width: 100, height: 100 },
+    size: { width: 100, height: 100 },
     position: { x: -60, y: 0 },
   }),
 );
 toodle.draw(
   toodle.Quad("ItemSeaSaltIceCream", {
-    idealSize: { width: 100, height: 100 },
+    size: { width: 100, height: 100 },
     position: { x: 60, y: 0 },
   }),
 );

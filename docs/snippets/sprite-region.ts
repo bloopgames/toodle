@@ -20,7 +20,7 @@ const spriteSheet = toodle.Quad("goombird", {
 });
 
 const animatedQuad = toodle.Quad("goombird", {
-  idealSize: {
+  size: {
     width: 48,
     height: 48,
   },
@@ -59,7 +59,7 @@ function paint() {
   toodle.draw(
     toodle.shapes
       .Rect({
-        idealSize: {
+        size: {
           width: 48,
           height: 48,
         },

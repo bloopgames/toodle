@@ -188,7 +188,7 @@ describe("SceneNode", () => {
 
   describe("world space", () => {
     it("calculates a world bounding box for a scene node with no parents and no transform", () => {
-      const node = new SceneNode({ idealSize: { width: 100, height: 100 } });
+      const node = new SceneNode({ size: { width: 100, height: 100 } });
 
       {
         const bounds = node.bounds;
@@ -200,7 +200,7 @@ describe("SceneNode", () => {
     });
 
     it("works for a local transform", () => {
-      const node = new SceneNode({ idealSize: { width: 100, height: 200 } });
+      const node = new SceneNode({ size: { width: 100, height: 200 } });
 
       {
         const bounds = node.bounds;
@@ -236,7 +236,7 @@ describe("SceneNode", () => {
     });
 
     it("works with rotation", () => {
-      const node = new SceneNode({ idealSize: { width: 100, height: 100 } });
+      const node = new SceneNode({ size: { width: 100, height: 100 } });
       node.rotation = 45;
 
       {
@@ -252,7 +252,7 @@ describe("SceneNode", () => {
       const parent = new SceneNode();
       const child = parent.add(
         new SceneNode({
-          idealSize: { width: 100, height: 100 },
+          size: { width: 100, height: 100 },
           position: { x: 50, y: 0 },
         }),
       );
@@ -283,12 +283,12 @@ describe("SceneNode", () => {
 
     it("doesn't incorporate parent size or flipX/flipY", () => {
       const parent = new SceneNode({
-        idealSize: { width: 1024, height: 1024 },
+        size: { width: 1024, height: 1024 },
         flipX: true,
         flipY: true,
       });
       const child = parent.add(
-        new SceneNode({ idealSize: { width: 100, height: 100 } }),
+        new SceneNode({ size: { width: 100, height: 100 } }),
       );
 
       expect(child.bounds.left).toEqual(-50);
@@ -296,7 +296,7 @@ describe("SceneNode", () => {
     });
 
     it("allows setting edge for an axis-aligned node", () => {
-      const node = new SceneNode({ idealSize: { width: 100, height: 100 } });
+      const node = new SceneNode({ size: { width: 100, height: 100 } });
 
       node.left = 0;
       node.bottom = 0;
@@ -311,7 +311,7 @@ describe("SceneNode", () => {
 
     it("allows setting edge for a rotated node", () => {
       const node = new SceneNode({
-        idealSize: { width: 100, height: 100 },
+        size: { width: 100, height: 100 },
         rotation: 180,
         scale: 2,
       });
@@ -329,7 +329,7 @@ describe("SceneNode", () => {
       });
       const child = parent.add(
         new SceneNode({
-          idealSize: { width: 100, height: 100 },
+          size: { width: 100, height: 100 },
           position: { x: 100, y: 100 },
         }),
       );

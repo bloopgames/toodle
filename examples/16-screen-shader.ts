@@ -19,7 +19,7 @@ function draw() {
   );
   toodle.draw(
     toodle.shapes.Circle({
-      idealSize: { width: 100, height: 100 },
+      size: { width: 100, height: 100 },
       color: { r: 1, g: 0, b: 1, a: 1 },
     }),
   );

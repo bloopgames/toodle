@@ -14,7 +14,7 @@ const white = { r: 1, g: 1, b: 1, a: 1 };
 const blue = { r: 0, g: 0, b: 1, a: 1 };
 
 const background = toodle.shapes.Rect({
-  idealSize: { width: 400, height: 400 },
+  size: { width: 400, height: 400 },
   color: blue,
 });
 
@@ -29,7 +29,7 @@ const text = background.add(
       maxFontSize: 100,
       maxLines: 10,
     },
-    idealSize: background.size,
+    size: background.size,
   }),
 );
 
@@ -37,8 +37,8 @@ function frame() {
   toodle.startFrame();
   toodle.draw(background);
   const width = 200 + Math.sin(performance.now() / 1000) * 200;
-  background.idealSize = { width, height: background.size.height };
-  text.idealSize = {
+  background.size = { width, height: background.size.height };
+  text.size = {
     width,
     height: background.size.height,
   };

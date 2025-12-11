@@ -228,7 +228,8 @@ export class AssetManager {
       await this.#registerBundleFromAtlases(bundleId, opts);
     }
 
-    if (opts.autoLoad) {
+    const autoLoad = opts.autoLoad ?? true;
+    if (autoLoad) {
       await this.loadBundle(bundleId);
     }
     return bundleId;

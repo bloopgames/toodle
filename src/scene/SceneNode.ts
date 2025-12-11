@@ -27,7 +27,7 @@ export class SceneNode {
   #transform: Transform;
   #matrix: Mat3 = mat3.identity();
   #renderComponent: RenderComponent | null = null;
-  #idealSize: Size | null = null;
+  #size: Size | null = null;
   #positionProxy: Point;
   #scaleProxy: Vec2;
 
@@ -45,7 +45,7 @@ export class SceneNode {
     this.#transform = {
       position: opts?.position ?? { x: 0, y: 0 },
       scale: { x: 1, y: 1 },
-      size: opts?.idealSize ?? { width: 1, height: 1 },
+      size: opts?.size ?? { width: 1, height: 1 },
       rotation: opts?.rotationRadians ?? 0,
     };
     if (opts?.scale) this.scale = opts.scale;
@@ -56,7 +56,7 @@ export class SceneNode {
     this.#layer = opts?.layer ?? null;
     this.#isActive = opts?.isActive ?? true;
     this.label = opts?.label ?? undefined;
-    this.#idealSize = opts?.idealSize ?? null;
+    this.#size = opts?.size ?? null;
     this.#key = opts?.key ?? null;
 
     for (const kid of opts?.kids ?? []) {
@@ -246,17 +246,16 @@ export class SceneNode {
     this.setDirty();
   }
 
-  set idealSize(value: Size | null) {
-    this.#idealSize = value;
-    this.setDirty();
-  }
-
   /**
    * The size of the node. See https://toodle.gg/f849595b3ed13fc956fc1459a5cb5f0228f9d259/examples/quad-size-scale.html
    */
+  set size(value: Size | null) {
+    this.#size = value;
+    this.setDirty();
+  }
 
   get size() {
-    return this.#idealSize;
+    return this.#size;
   }
 
   /**
@@ -264,13 +263,13 @@ export class SceneNode {
    * If the node has no defined size, the aspect ratio will be 1.
    */
   get aspectRatio() {
-    if (!this.#idealSize) {
+    if (!this.#size) {
       console.warn(
         "Attempted to get aspect ratio of a node with no ideal size",
       );
       return 1;
     }
-    return this.#idealSize.width / this.#idealSize.height;
+    return this.#size.width / this.#size.height;
   }
 
   /**
@@ -592,7 +591,7 @@ export type NodeOptions = {
   /** The scale for the node. */
   scale?: Vec2 | number;
   /** The desired size for the node. */
-  idealSize?: Size;
+  size?: Size;
   /** The active state for the node. */
   isActive?: boolean;
   /** The kids for the node. */

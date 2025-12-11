@@ -46,7 +46,7 @@ function draw() {
   );
   toodle.draw(
     toodle.shapes.Circle({
-      idealSize: { width: 100, height: 100 },
+      size: { width: 100, height: 100 },
       color: { r: 1, g: 0.8, b: 0.6, a: 1 },
       shader,
       position: toodle.convertSpace(mouse, { from: "screen", to: "world" }),

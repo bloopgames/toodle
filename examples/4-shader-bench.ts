@@ -121,7 +121,7 @@ for (let i = 0; i < toodle.limits.instanceCount; i++) {
         x: Math.random() * 5000 - 2500,
         y: Math.random() * 5000 - 2500,
       },
-      idealSize: { width: 100, height: 100 },
+      size: { width: 100, height: 100 },
       shader: isFlash ? whiteFlash : outline,
       writeInstance(array, offset) {
         array.set(color, offset);

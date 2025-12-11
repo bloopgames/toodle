@@ -51,7 +51,7 @@ function frame() {
     toodle.draw(
       toodle.Quad("tile0", {
         shader: atlasPreviewShader,
-        idealSize: {
+        size: {
           width: toodle.resolution.width,
           height: toodle.resolution.height,
         },

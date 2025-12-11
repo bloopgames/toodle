@@ -48,21 +48,21 @@ const padding = 20;
 
 const nodes = [
   toodle.Node({
-    idealSize: textBlockSize,
+    size: textBlockSize,
     position: {
       x: padding + -screen.width / 2 + textBlockSize.width / 2,
       y: -padding + screen.height / 2 - textBlockSize.height / 2,
     },
   }),
   toodle.Node({
-    idealSize: textBlockSize,
+    size: textBlockSize,
     position: {
       x: 0,
       y: -padding + screen.height / 2 - textBlockSize.height / 2,
     },
   }),
   toodle.Node({
-    idealSize: textBlockSize,
+    size: textBlockSize,
     position: {
       x: screen.width / 2 - textBlockSize.width / 2 - padding,
       y: -padding + screen.height / 2 - textBlockSize.height / 2,
@@ -72,7 +72,7 @@ const nodes = [
 
 nodes[0].add(
   toodle.shapes.Rect({
-    idealSize: textBlockSize,
+    size: textBlockSize,
     color: Palette.HOT_PINK,
     layer: -1,
   }),
@@ -80,7 +80,7 @@ nodes[0].add(
 
 nodes[1].add(
   toodle.shapes.Rect({
-    idealSize: textBlockSize,
+    size: textBlockSize,
     color: Palette.HOT_PINK,
     layer: -1,
   }),
@@ -88,7 +88,7 @@ nodes[1].add(
 
 nodes[2].add(
   toodle.shapes.Rect({
-    idealSize: textBlockSize,
+    size: textBlockSize,
     color: Palette.HOT_PINK,
     layer: -1,
   }),
@@ -102,7 +102,7 @@ nodes[0].add(
       align: "left",
       rotation: 0,
       fontSize: 14,
-      idealSize: textBlockSize,
+      size: textBlockSize,
     },
   ),
 );
@@ -113,7 +113,7 @@ nodes[1].add(
     "Center align\nmultiple lines\nworks really well I guess",
     {
       align: "center",
-      idealSize: textBlockSize,
+      size: textBlockSize,
     },
   ),
 );
@@ -124,7 +124,7 @@ nodes[2].add(
     "Right align\nmultiple lines\nworks really well I guess",
     {
       align: "right",
-      idealSize: textBlockSize,
+      size: textBlockSize,
       fontSize: 16,
     },
   ),

@@ -56,7 +56,7 @@ fn frag(vertex: VertexOutput) -> @location(0) vec4f {
 
 const intrinsicSize = toodle.assets.getSize("chain");
 const quad = toodle.Quad("chain", {
-  idealSize: {
+  size: {
     width: toodle.resolution.width,
     height:
       (toodle.resolution.width * intrinsicSize.height) / intrinsicSize.width,

@@ -38,8 +38,15 @@ const pantryTextures = {
   ItemTurkeyLeg: new URL("img/ItemTurkeyLeg.png", "https://toodle.gg"),
 };
 
-await toodle.assets.registerBundle("produce", { textures: produceTextures });
-await toodle.assets.registerBundle("pantry", { textures: pantryTextures });
+// Use autoLoad: false to manually control when bundles are loaded
+await toodle.assets.registerBundle("produce", {
+  textures: produceTextures,
+  autoLoad: false,
+});
+await toodle.assets.registerBundle("pantry", {
+  textures: pantryTextures,
+  autoLoad: false,
+});
 
 await toodle.assets.loadBundle("produce");
 await toodle.assets.loadBundle("pantry");
@@ -60,13 +67,13 @@ await toodle.assets.loadBundle("pantry");
 toodle.startFrame();
 toodle.draw(
   toodle.Quad("ItemPumpkin", {
-    idealSize: { width: 100, height: 100 },
+    size: { width: 100, height: 100 },
     position: { x: -60, y: 0 },
   }),
 );
 toodle.draw(
   toodle.Quad("ItemTurkeyLeg", {
-    idealSize: { width: 100, height: 100 },
+    size: { width: 100, height: 100 },
     position: { x: 60, y: 0 },
   }),
 );

@@ -107,14 +107,14 @@ async function main() {
 
     toodle.draw(
       toodle.Quad("ItemApple", {
-        idealSize: { width: 300, height: 300 },
+        size: { width: 300, height: 300 },
         position: { x: -300, y: 10 },
         shader,
       }),
     );
     toodle.draw(
       toodle.Quad("ItemBaguette", {
-        idealSize: { width: 300, height: 300 },
+        size: { width: 300, height: 300 },
         position: {
           x: 300,
           y: 10,
@@ -124,7 +124,7 @@ async function main() {
     );
     toodle.draw(
       toodle.Quad("ItemApple", {
-        idealSize: { width: 300, height: 300 },
+        size: { width: 300, height: 300 },
         position: { x: -300, y: -310 },
         shader,
       }),
@@ -132,7 +132,7 @@ async function main() {
 
     toodle.draw(
       toodle.Quad("ItemBaguette", {
-        idealSize: { width: 300, height: 300 },
+        size: { width: 300, height: 300 },
         position: {
           x: 300,
           y: -310,

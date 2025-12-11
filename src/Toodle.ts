@@ -510,7 +510,7 @@ export class Toodle {
    */
   Quad(assetId: TextureId, options: QuadOptions = {}) {
     const assetManager = options.assetManager ?? this.assets;
-    options.idealSize ??= assetManager.getSize(assetId);
+    options.size ??= assetManager.getSize(assetId);
     options.shader ??= this.#defaultQuadShader();
     options.atlasCoords ??= assetManager.extra.getAtlasCoords(assetId)[0];
     options.textureId ??= assetId;
@@ -578,7 +578,7 @@ export class Toodle {
       height: originalSize.height,
     };
 
-    options.idealSize ??= {
+    options.size ??= {
       width: originalSize.width,
       height: originalSize.height,
     };
@@ -612,7 +612,7 @@ export class Toodle {
 
   shapes = {
     Rect: (options: QuadOptions = {}) => {
-      options.idealSize ??= { width: 1, height: 1 };
+      options.size ??= { width: 1, height: 1 };
       options.shader ??= this.#defaultQuadShader();
       options.atlasCoords ??= {
         atlasIndex: 1000,
@@ -640,18 +640,25 @@ export class Toodle {
       return quad;
     },
 
-    Circle: (options: QuadOptions = {}) => {
-      options.idealSize ??= { width: 1, height: 1 };
-      options.shader ??= this.#defaultQuadShader();
-      options.atlasCoords ??= {
-        atlasIndex: 1001,
-        uvOffset: { x: 0, y: 0 },
-        uvScale: { width: 0, height: 0 },
-        cropOffset: { x: 0, y: 0 },
-        originalSize: { width: 1, height: 1 },
+    Circle: (options: CircleOptions = { radius: 50 }) => {
+      const radius = options.radius ?? 50;
+      const diameter = radius * 2;
+
+      const quadOptions: QuadOptions = {
+        ...options,
+        size: { width: diameter, height: diameter },
+        shader: options.shader ?? this.#defaultQuadShader(),
+        atlasCoords: options.atlasCoords ?? {
+          atlasIndex: 1001,
+          uvOffset: { x: 0, y: 0 },
+          uvScale: { width: 0, height: 0 },
+          cropOffset: { x: 0, y: 0 },
+          originalSize: { width: 1, height: 1 },
+        },
+        assetManager: this.assets,
       };
-      options.assetManager = this.assets;
-      const quad = new QuadNode(options, this.#matrixPool);
+
+      const quad = new QuadNode(quadOptions, this.#matrixPool);
 
       if (options?.position) {
         quad.position = options.position;
@@ -693,7 +700,7 @@ export class Toodle {
             originalSize: { width: 1, height: 1 },
           },
           shader: options.shader ?? this.#defaultQuadShader(),
-          idealSize: { width: 1, height: 1 },
+          size: { width: 1, height: 1 },
           layer: options.layer,
           key: options.key,
           rotationRadians: angle,
@@ -819,6 +826,15 @@ export type ToodleOptions = {
    */
   filter?: "nearest" | "linear";
   limits?: LimitsOptions;
+};
+
+export type CircleOptions = Omit<QuadOptions, "size"> & {
+  /**
+   * The radius of the circle in pixels.
+   * The diameter will be radius * 2.
+   * @default 50
+   */
+  radius?: number;
 };
 
 export type LineOptions = {

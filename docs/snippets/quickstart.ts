@@ -13,7 +13,7 @@ await toodle.assets.loadTexture(
 );
 
 const quad = toodle.Quad("kitten", {
-  idealSize: {
+  size: {
     width: 100,
     height: 100,
   },

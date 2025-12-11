@@ -4,6 +4,33 @@ A detailed list of all notable changes for every released version.
 
 [All releases](https://www.npmjs.com/package/@bloopjs/toodle)
 
+## [0.0.104](https://github.com/bloopgames/toodle/releases/tag/0.0.104)
+
+- **Breaking**: `shapes.Circle()` now takes a `radius` parameter instead of using `scale` for sizing. A circle with `radius: 50` has diameter 100. You can still apply `scale` on top of the radius-based size.
+  ```ts
+  // before
+  toodle.shapes.Circle({ scale: { x: 100, y: 100 } }); // 100px diameter circle
+  // after
+  toodle.shapes.Circle({ radius: 50 }); // 100px diameter circle (radius defaults to 50)
+  ```
+- **Breaking**: `idealSize` renamed to `size` throughout the API (`NodeOptions.size`, `QuadOptions.size`, etc.)
+  ```ts
+  // before
+  toodle.Quad("texture", { idealSize: { width: 100, height: 100 } });
+  // after
+  toodle.Quad("texture", { size: { width: 100, height: 100 } });
+  ```
+- **Breaking**: `autoLoad` now defaults to `true` for bundle registration. Bundles are loaded to the GPU immediately after registration unless you specify `autoLoad: false`.
+  ```ts
+  // before - had to explicitly load
+  await toodle.assets.registerBundle("sprites", { textures });
+  await toodle.assets.loadBundle("sprites");
+  // after - auto-loads by default
+  await toodle.assets.registerBundle("sprites", { textures });
+  // or opt out with autoLoad: false
+  await toodle.assets.registerBundle("sprites", { textures, autoLoad: false });
+  ```
+
 ## [0.0.103](https://github.com/bloopgames/toodle/releases/tag/0.0.103)
 
 - Add `Bundles` class for renderer-agnostic bundle registration and atlas coordinate lookups. This enables WebGL fallback paths to share bundle registration with WebGPU code.
@@ -40,8 +67,8 @@ JumboQuad fixes:
 
 - Fix instance count bug in `QuadShader` when using `toodle.JumboQuad` with layers
 - Fix `toodle.JumboQuad` positioning bug when offset is 0
-- Fix `toodle.JumboQuad` tile positioning bug when `idealSize` is provided
-- Fix `idealSize` option on `toodle.JumboQuad`
+- Fix `toodle.JumboQuad` tile positioning bug when `size` is provided
+- Fix `size` option on `toodle.JumboQuad`
 
 ## [0.0.89](https://github.com/bloopgames/toodle/releases/tag/0.0.89)
 
@@ -131,7 +158,7 @@ toodle.shapes.Rect({ rotationRadians: Math.PI / 2 });
 
 ## [0.0.65](https://github.com/bloopgames/toodle/releases/tag/0.0.65)
 
-- Default `TextNode.idealSize` to the size of the text if no `idealSize` is provided.
+- Default `TextNode.size` to the size of the text if no `size` is provided.
 - Accept `key` parameter in `toodle.shapes.Line` constructor. This allows associating a string key with the node for debugging purposes, and may be [used for optimizations in the future](https://github.com/bloopgames/toodle/issues/82).
 
 ## [0.0.64](https://github.com/bloopgames/toodle/releases/tag/0.0.64)

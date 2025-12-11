@@ -58,7 +58,7 @@ function frame() {
         offset: { x: 4096, y: 0 },
       },
     ],
-    idealSize: {
+    size: {
       width: 200,
       height: 200,
     },

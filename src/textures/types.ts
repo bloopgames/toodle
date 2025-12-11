@@ -107,7 +107,8 @@ export type TextureBundleOpts = {
    */
   cropTransparentPixels?: boolean;
   /**
-   * Whether the bundle should be loaded automatically on registration
+   * Whether the bundle should be loaded automatically on registration.
+   * @default true
    */
   autoLoad?: boolean;
 };
@@ -135,7 +136,8 @@ export type AtlasBundleOpts = {
   atlases: AtlasDef[];
 
   /**
-   * Whether the bundle should be loaded automatically on registration
+   * Whether the bundle should be loaded automatically on registration.
+   * @default true
    */
   autoLoad?: boolean;
 

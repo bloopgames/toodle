@@ -23,8 +23,8 @@ export class TextNode extends SceneNode {
 
     const em2px = shader.font.lineHeight / (opts.fontSize ?? DEFAULT_FONT_SIZE);
 
-    if (!opts.shrinkToFit && !opts.idealSize) {
-      opts.idealSize = { width: width / em2px, height: height / em2px };
+    if (!opts.shrinkToFit && !opts.size) {
+      opts.size = { width: width / em2px, height: height / em2px };
     }
 
     super({

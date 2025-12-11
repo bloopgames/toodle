@@ -27,7 +27,7 @@ function draw() {
   toodle.startFrame();
   toodle.draw(
     toodle.shapes.Rect({
-      idealSize: { width: 100, height: 100 },
+      size: { width: 100, height: 100 },
       color: Colors.web.whiteSmoke,
       position: toodle.convertSpace(mouse, { from: "screen", to: "world" }),
     }),

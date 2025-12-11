@@ -25,7 +25,7 @@ quad3.position = { x: 0, y: 0 };
 const quads: QuadNode[] = [];
 for (let i = 0; i < 60; i++) {
   const quad = toodle.Quad("test", {
-    idealSize: { width: i + 1 + 0.6, height: i + 1 + 0.6 },
+    size: { width: i + 1 + 0.6, height: i + 1 + 0.6 },
   });
   quad.position = { x: i * 10, y: i * 5 };
   quads.push(quad);

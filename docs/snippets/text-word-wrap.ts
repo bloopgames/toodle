@@ -49,12 +49,12 @@ const wordWrapText = toodle.Text(
 const backgrounds = toodle.Node({
   kids: [
     toodle.shapes.Rect({
-      idealSize: { width: emWidth * em2px, height: 225 },
+      size: { width: emWidth * em2px, height: 225 },
       position: { x: -200, y: 0 },
       color: { r: 1, g: 0, b: 0, a: 0.2 },
     }),
     toodle.shapes.Rect({
-      idealSize: { width: emWidth * em2px, height: 225 },
+      size: { width: emWidth * em2px, height: 225 },
       position: { x: 200, y: 0 },
       color: { r: 1, g: 0, b: 0, a: 0.2 },
     }),

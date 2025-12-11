@@ -25,7 +25,7 @@ const text = toodle.Text(
 
 const regression = toodle.Text('roboto', 'The Book', {
   align: "center",
-  // idealSize: {width: 138.33333333333334, height: 667.8},
+  // size: {width: 138.33333333333334, height: 667.8},
   position: {x: -88.57499999999999, y: -152.79099999999994},
   // fontSize: fontSize2,
   color: Palette.BLACK,

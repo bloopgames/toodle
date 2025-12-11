@@ -34,8 +34,8 @@ toodle.shapes.Circle({ scale: { x: 100, y: 100 } })
 toodle.shapes.Circle({ radius: 50 })
 ```
 
-### 3b. Rename idealSize to size
-- Delete vestigial `idealSize` property
+### 3b. Rename size to size
+- Delete vestigial `size` property
 - Use `size` directly throughout
 - Defaults: 100x100 for shapes, natural dimensions for quads
 
@@ -55,5 +55,5 @@ Evaluate improvements to the shader API:
 **Breaking changes:**
 - Package name: `@bloopjs/toodle` → `@bloopjs/toodle`
 - Circle API: `scale` → `radius`
-- `idealSize` → `size`
+- `size` → `size`
 - Bundle registration: `autoLoad` defaults to `true`
