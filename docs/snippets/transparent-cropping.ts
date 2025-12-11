@@ -179,8 +179,6 @@ canvas.before(
   }),
 );
 
-canvas.before("<br />");
-
 canvas.before(
   makeButton("Scene", (button) => {
     state.showAtlas = !state.showAtlas;

@@ -44,7 +44,7 @@ export class AssetManager {
 
     // Initialize compute shader only for WebGPU backend
     if (backend.type === "webgpu") {
-      const device = backend.getDevice() as GPUDevice;
+      const device = (backend as WebGPUBackend).device;
       this.#cropComputeShader = TextureComputeShader.create(device);
     }
 
@@ -310,9 +310,9 @@ export class AssetManager {
       );
     }
 
-    const device = this.#backend.getDevice() as GPUDevice;
-    const presentationFormat =
-      this.#backend.getPresentationFormat() as GPUTextureFormat;
+    const webgpuBackend = this.#backend as WebGPUBackend;
+    const device = webgpuBackend.device;
+    const presentationFormat = webgpuBackend.presentationFormat;
     const limits = this.#backend.limits;
 
     const font = await MsdfFont.create(id, url);
@@ -374,7 +374,7 @@ export class AssetManager {
    * @private
    */
   #createTextureFromImageBitmap(bitmap: ImageBitmap, name: string): GPUTexture {
-    const device = this.#backend.getDevice() as GPUDevice;
+    const device = (this.#backend as WebGPUBackend).device;
     const texture = device.createTexture({
       label: `${name} Intermediary Texture`,
       size: [bitmap.width, bitmap.height],
@@ -408,7 +408,7 @@ export class AssetManager {
       );
     }
 
-    const device = this.#backend.getDevice() as GPUDevice;
+    const device = (this.#backend as WebGPUBackend).device;
     const images = new Map<string, TextureWithMetadata>();
 
     let _networkLoadTime = 0;
@@ -574,7 +574,7 @@ export class AssetManager {
   }
 
   #copyTextureToAtlas(texture: GPUTexture, atlasIndex: number) {
-    const device = this.#backend.getDevice() as GPUDevice;
+    const device = (this.#backend as WebGPUBackend).device;
     const copyEncoder: GPUCommandEncoder = device.createCommandEncoder();
     copyEncoder.copyTextureToTexture(
       {

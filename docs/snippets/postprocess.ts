@@ -8,7 +8,7 @@ if (!(toodle.backend instanceof Backends.WebGPUBackend)) {
 }
 
 const device = toodle.backend.device;
-const presentationFormat = toodle.backend.getPresentationFormat();
+const presentationFormat = toodle.backend.presentationFormat;
 
 const pipeline = device.createRenderPipeline({
   label: "color inversion pipeline",

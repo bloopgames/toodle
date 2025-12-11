@@ -87,20 +87,4 @@ export interface IRenderBackend {
    * Clean up GPU resources.
    */
   destroy(): void;
-
-  /**
-   * Get the render context for shader batch processing.
-   * Returns backend-specific context (GPURenderPassEncoder or WebGL2RenderingContext).
-   */
-  getRenderContext(): unknown;
-
-  /**
-   * Get the presentation format used by this backend.
-   */
-  getPresentationFormat(): unknown;
-
-  /**
-   * Get the underlying device (GPUDevice for WebGPU, WebGL2RenderingContext for WebGL).
-   */
-  getDevice(): unknown;
 }

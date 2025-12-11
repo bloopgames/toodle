@@ -185,22 +185,17 @@ export class WebGLBackend implements IRenderBackend {
     gl.deleteTexture(this.textureArrayHandle);
   }
 
-  getRenderContext(): WebGL2RenderingContext {
-    return this.#gl;
-  }
-
-  getPresentationFormat(): string {
-    return this.#format;
-  }
-
-  getDevice(): WebGL2RenderingContext {
-    return this.#gl;
-  }
-
   /**
    * Get the WebGL 2 rendering context.
    */
   get gl(): WebGL2RenderingContext {
     return this.#gl;
+  }
+
+  /**
+   * Get the presentation format.
+   */
+  get presentationFormat(): string {
+    return this.#format;
   }
 }

@@ -120,7 +120,7 @@ export class TextShader implements IBackendShader {
   processBatch(nodes: SceneNode[]): number {
     if (nodes.length === 0) return 0;
 
-    const renderPass = this.#backend.getRenderContext();
+    const renderPass = this.#backend.renderPass;
     renderPass.setPipeline(this.#pipeline);
     for (let i = 0; i < this.#bindGroups.length; i++) {
       renderPass.setBindGroup(i, this.#bindGroups[i]);

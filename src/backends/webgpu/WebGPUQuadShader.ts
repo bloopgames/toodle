@@ -58,8 +58,7 @@ export class WebGPUQuadShader implements IBackendShader {
     this.#instanceCount = instanceCount;
 
     const device = backend.device;
-    const presentationFormat =
-      backend.getPresentationFormat() as GPUTextureFormat;
+    const presentationFormat = backend.presentationFormat;
 
     // Combine user code with base quad shader code
     const effectiveUserCode =
@@ -188,7 +187,7 @@ export class WebGPUQuadShader implements IBackendShader {
 
   processBatch(nodes: SceneNode[]): number {
     const device = this.#backend.device;
-    const renderPass = this.#backend.getRenderContext() as GPURenderPassEncoder;
+    const renderPass = this.#backend.renderPass;
 
     renderPass.setPipeline(this.#pipeline);
     const batchStartInstanceIndex = this.#instanceIndex;

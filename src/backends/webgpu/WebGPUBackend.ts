@@ -264,22 +264,6 @@ export class WebGPUBackend implements IRenderBackend {
     }
   }
 
-  getRenderContext(): GPURenderPassEncoder {
-    assert(
-      this.#renderPass,
-      "No render pass available - did you call startFrame?",
-    );
-    return this.#renderPass;
-  }
-
-  getPresentationFormat(): GPUTextureFormat {
-    return this.#presentationFormat;
-  }
-
-  getDevice(): GPUDevice {
-    return this.#device;
-  }
-
   /**
    * Get the GPU device for advanced operations.
    */
@@ -292,5 +276,24 @@ export class WebGPUBackend implements IRenderBackend {
    */
   get context(): GPUCanvasContext {
     return this.#context;
+  }
+
+  /**
+   * Get the presentation format.
+   */
+  get presentationFormat(): GPUTextureFormat {
+    return this.#presentationFormat;
+  }
+
+  /**
+   * Get the current render pass encoder.
+   * Only available between startFrame() and endFrame().
+   */
+  get renderPass(): GPURenderPassEncoder {
+    assert(
+      this.#renderPass,
+      "No render pass available - did you call startFrame?",
+    );
+    return this.#renderPass;
   }
 }

@@ -44,7 +44,7 @@ function frame() {
 
   const circle = toodle.shapes.Circle({
     color: { r: 0.9, g: 0.9, b: 0.9, a: 1 },
-    size: { width: 200, height: 200 },
+    radius: 100,
   });
 
   const rectangle = toodle.shapes.Rect({

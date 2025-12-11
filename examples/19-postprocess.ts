@@ -138,7 +138,7 @@ struct EngineUniform {
 // }
 
 const device = toodle.backend.device;
-const presentationFormat = toodle.backend.getPresentationFormat();
+const presentationFormat = toodle.backend.presentationFormat;
 const buffers = createBuffers(device);
 const sampler = Backends.PostProcessDefaults.sampler(device);
 const pipeline = device.createRenderPipeline({
