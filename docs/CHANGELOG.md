@@ -4,6 +4,16 @@ A detailed list of all notable changes for every released version.
 
 [All releases](https://www.npmjs.com/package/@bloopjs/toodle)
 
+## [0.1.0](https://github.com/bloopgames/toodle/releases/tag/0.1.0)
+
+- Add **WebGL2 fallback renderer** for browsers without WebGPU support. Use `backend: "webgl2"` in the options passed to `Toodle.attach()`:
+  ```ts
+  const toodle = await Toodle.attach(canvas, {
+    backend: "webgl2", // or "webgpu" (default)
+  });
+  ```
+- Internal refactoring: Introduced `IBackendShader` and `IRenderBackend` interfaces to support multiple rendering backends
+
 ## [0.0.104](https://github.com/bloopgames/toodle/releases/tag/0.0.104)
 
 - **Breaking**: `shapes.Circle()` now takes a `radius` parameter instead of using `scale` for sizing. A circle with `radius: 50` has diameter 100. You can still apply `scale` on top of the radius-based size.
