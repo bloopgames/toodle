@@ -20,3 +20,4 @@ export * as Textures from "./textures/mod";
 export * as Utils from "./utils/mod";
 
 export { AssetManager } from "./textures/AssetManager";
+export { Bundles } from "./textures/Bundles";

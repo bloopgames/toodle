@@ -6,7 +6,10 @@
       "Bash(find:*)",
       "Bash(bun install:*)",
       "Bash(bun run ci)",
-      "WebFetch(domain:github.com)"
+      "WebFetch(domain:github.com)",
+      "Bash(bun run biome:write:*)",
+      "Bash(curl:*)",
+      "Bash(gzip:*)"
     ]
   }
 }

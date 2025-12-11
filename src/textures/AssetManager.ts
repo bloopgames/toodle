@@ -8,14 +8,13 @@ import { FontPipeline } from "../text/FontPipeline";
 import { MsdfFont } from "../text/MsdfFont";
 import { TextShader } from "../text/TextShader";
 import { assert } from "../utils/mod";
+import { Bundles } from "./Bundles";
 import { TextureComputeShader } from "./TextureComputeShader";
 import type {
   AtlasBundleOpts,
   AtlasCoords,
   CpuTextureAtlas,
-  PixiRegion,
   TextureBundleOpts,
-  TextureRegion,
   TextureWithMetadata,
 } from "./types";
 import { getBitmapFromUrl, packBitmapsToAtlas } from "./util";
@@ -24,18 +23,18 @@ export type TextureId = string;
 export type BundleId = string;
 export type FontId = string;
 
-type Bundle = {
-  atlases: CpuTextureAtlas[];
-  isLoaded: boolean;
-  atlasIndices: number[];
+export type AssetManagerOptions = {
+  /** Existing Bundles instance to use for CPU-side storage. If not provided, a new one is created. */
+  bundles?: Bundles;
+  /** Texture format (default: "rgba8unorm") */
+  format?: "rgba8unorm" | "rg8unorm";
 };
 
 export class AssetManager {
   readonly textureAtlas: GPUTexture;
+  readonly bundles: Bundles;
   #device: GPUDevice;
   #presentationFormat: GPUTextureFormat;
-  #bundles: Map<BundleId, Bundle> = new Map();
-  #textures: Map<string, AtlasCoords[]> = new Map();
   #fonts: Map<string, TextShader> = new Map();
   #cropComputeShader: TextureComputeShader;
   #limits: Limits;
@@ -45,11 +44,14 @@ export class AssetManager {
     device: GPUDevice,
     presentationFormat: GPUTextureFormat,
     limits: Limits,
-    format: "rgba8unorm" | "rg8unorm" = "rgba8unorm",
+    options: AssetManagerOptions = {},
   ) {
     this.#device = device;
     this.#presentationFormat = presentationFormat;
     this.#limits = limits;
+    this.bundles =
+      options.bundles ?? new Bundles({ atlasSize: limits.textureSize });
+    const format = options.format ?? "rgba8unorm";
     this.textureAtlas = device.createTexture({
       label: "Asset Manager Atlas Texture",
       size: [
@@ -108,27 +110,27 @@ export class AssetManager {
    * @returns Whether the image has been cropped (i.e. if it has uvScaledCropped)
    */
   isCropped(id: TextureId): boolean {
-    if (!this.#textures.has(id)) {
+    if (!this.bundles.hasTexture(id)) {
       throw new Error(
         `Texture ${id} not found in atlas. Have you called toodle.loadTextures with this id or toodle.loadBundle with a bundle that contains it?`,
       );
     }
 
-    return this.#textures.get(id)![0].uvScaleCropped === undefined;
+    return this.bundles.getAtlasCoords(id)[0].uvScaleCropped === undefined;
   }
 
   /**
    * A read-only map of all currently loaded textures.
    */
   get textures() {
-    return this.#textures;
+    return this.bundles.textures;
   }
 
   /**
    * A read-only array of all currently loaded texture ids.
    */
   get textureIds() {
-    return Array.from(this.#textures.keys());
+    return this.bundles.textureIds;
   }
 
   /**
@@ -200,7 +202,7 @@ export class AssetManager {
       atlasIndex,
     };
 
-    this.#textures.set(id, [coords]);
+    this.bundles.addTextureEntry(id, coords);
     this.#availableIndices.delete(atlasIndex);
 
     textureWrapper.texture.destroy();
@@ -238,22 +240,25 @@ export class AssetManager {
    * See: https://toodle.gg/f849595b3ed13fc956fc1459a5cb5f0228f9d259/examples/texture-bundles.html
    */
   async loadBundle(bundleId: BundleId) {
-    const bundle = this.#bundles.get(bundleId);
-    if (!bundle) {
+    if (!this.bundles.hasBundle(bundleId)) {
       throw new Error(`Bundle ${bundleId} not found`);
     }
 
-    if (bundle.isLoaded) {
+    if (this.bundles.isBundleLoaded(bundleId)) {
       console.warn(`Bundle ${bundleId} is already loaded.`);
       return;
     }
 
-    for (const atlas of bundle.atlases) {
+    const atlases = this.bundles.getBundleAtlases(bundleId);
+    const atlasIndices: number[] = [];
+
+    for (const atlas of atlases) {
       const atlasIndex = await this.extra.loadAtlas(atlas);
-      bundle.atlasIndices.push(atlasIndex);
+      atlasIndices.push(atlasIndex);
     }
 
-    bundle.isLoaded = true;
+    // Use setBundleLoaded (not markBundleLoaded) since loadAtlas already populated textures
+    this.bundles.setBundleLoaded(bundleId, atlasIndices);
   }
 
   /**
@@ -263,24 +268,21 @@ export class AssetManager {
    * @param bundleId - The id of the bundle to unload
    */
   async unloadBundle(bundleId: BundleId) {
-    const bundle = this.#bundles.get(bundleId);
-    if (!bundle) {
+    if (!this.bundles.hasBundle(bundleId)) {
       throw new Error(`Bundle ${bundleId} not found`);
     }
 
-    if (!bundle.isLoaded) {
+    if (!this.bundles.isBundleLoaded(bundleId)) {
       console.warn(`Bundle ${bundleId} is not loaded.`);
       return;
     }
 
+    const atlasIndices = this.bundles.getBundleAtlasIndices(bundleId);
     await Promise.all(
-      bundle.atlasIndices.map((atlasIndex) =>
-        this.extra.unloadAtlas(atlasIndex),
-      ),
+      atlasIndices.map((atlasIndex) => this.extra.unloadAtlas(atlasIndex)),
     );
 
-    bundle.isLoaded = false;
-    bundle.atlasIndices = [];
+    this.bundles.unloadBundle(bundleId);
   }
 
   /**
@@ -328,37 +330,19 @@ export class AssetManager {
     )
       return;
 
-    const coords: AtlasCoords[] | undefined = this.#textures.get(
-      node.textureId,
-    );
-    if (!coords || !coords.length) {
+    if (!this.bundles.hasTexture(node.textureId)) {
       throw new Error(
         `Node ${node.id} references an invalid texture ${node.textureId}.`,
       );
     }
 
+    const coords = this.bundles.getAtlasCoords(node.textureId);
     if (
       coords.find((coord) => coord.atlasIndex === node.atlasCoords.atlasIndex)
     )
       return;
 
     node.extra.setAtlasCoords(coords[0]);
-  }
-
-  /**
-   * Sets a designated texture ID to the corresponding `AtlasRegion` built from a `TextureRegion` and `numerical atlas index.
-   * @param id - `String` representing the texture name. I.e. "PlayerSprite"
-   * @param textureRegion - `TextureRegion` corresponding the uv and texture offsets
-   * @param atlasIndex - `number` of the atlas that the texture will live in.
-   * @private
-   */
-  #addTexture(id: string, textureRegion: TextureRegion, atlasIndex: number) {
-    this.#textures.set(id, [
-      {
-        ...textureRegion,
-        atlasIndex,
-      },
-    ]);
   }
 
   /**
@@ -422,115 +406,12 @@ export class AssetManager {
       this.#device,
     );
 
-    this.#bundles.set(bundleId, {
-      atlases,
-      atlasIndices: [],
-      isLoaded: false,
-    });
+    this.bundles.registerDynamicBundle(bundleId, atlases);
   }
 
   async #registerBundleFromAtlases(bundleId: BundleId, opts: AtlasBundleOpts) {
-    const atlases: CpuTextureAtlas[] = [];
-
-    for (const atlas of opts.atlases) {
-      const jsonUrl =
-        atlas.json ??
-        new URL(
-          atlas.png!.toString().replace(".png", ".json"),
-          atlas.png!.origin,
-        );
-      const pngUrl =
-        atlas.png ??
-        new URL(
-          atlas.json!.toString().replace(".json", ".png"),
-          atlas.json!.origin,
-        );
-
-      const atlasDef = await (await fetch(jsonUrl)).json();
-      const bitmap = !opts.rg8
-        ? await getBitmapFromUrl(pngUrl)
-        : await createImageBitmap(new ImageData(1, 1)); // placeholder bitmap if using rg8
-
-      let rg8Bytes: Uint8Array<ArrayBuffer> | undefined;
-      if (opts.rg8) {
-        const rg8url = new URL(
-          pngUrl.toString().replace(".png", ".rg8.gz"),
-          pngUrl.origin,
-        );
-        const rgBytes = await fetch(rg8url).then(async (r) => {
-          const enc = (r.headers.get("content-encoding") || "").toLowerCase();
-          // If server/CDN already set Content-Encoding, Fetch returns decompressed bytes.
-          if (
-            enc.includes("gzip") ||
-            enc.includes("br") ||
-            enc.includes("deflate")
-          ) {
-            return new Uint8Array(await r.arrayBuffer());
-          }
-
-          assert(r.body, "Response body of rg8 file is null");
-          const ds = new DecompressionStream("gzip");
-          const ab = await new Response(r.body.pipeThrough(ds)).arrayBuffer();
-          return new Uint8Array(ab);
-        });
-        rg8Bytes = rgBytes;
-      }
-
-      const cpuTextureAtlas: CpuTextureAtlas = {
-        texture: bitmap,
-        rg8Bytes,
-        textureRegions: new Map(),
-        width: opts.rg8 ? this.#limits.textureSize : bitmap.width,
-        height: opts.rg8 ? this.#limits.textureSize : bitmap.height,
-      };
-
-      for (const [assetId, frame] of Object.entries(atlasDef.frames) as [
-        string,
-        PixiRegion,
-      ][]) {
-        const leftCrop = frame.spriteSourceSize.x;
-        const rightCrop =
-          frame.sourceSize.w -
-          frame.spriteSourceSize.x -
-          frame.spriteSourceSize.w;
-        const topCrop = frame.spriteSourceSize.y;
-        const bottomCrop =
-          frame.sourceSize.h -
-          frame.spriteSourceSize.y -
-          frame.spriteSourceSize.h;
-
-        cpuTextureAtlas.textureRegions.set(assetId, {
-          cropOffset: {
-            x: leftCrop - rightCrop,
-            y: bottomCrop - topCrop,
-          },
-          originalSize: {
-            width: frame.sourceSize.w,
-            height: frame.sourceSize.h,
-          },
-          uvOffset: {
-            x: frame.frame.x / cpuTextureAtlas.width,
-            y: frame.frame.y / cpuTextureAtlas.height,
-          },
-          uvScale: {
-            width: frame.sourceSize.w / cpuTextureAtlas.width,
-            height: frame.sourceSize.h / cpuTextureAtlas.height,
-          },
-          uvScaleCropped: {
-            width: frame.frame.w / cpuTextureAtlas.width,
-            height: frame.frame.h / cpuTextureAtlas.height,
-          },
-        });
-      }
-
-      atlases.push(cpuTextureAtlas);
-    }
-
-    this.#bundles.set(bundleId, {
-      atlases,
-      atlasIndices: [],
-      isLoaded: false,
-    });
+    // Delegate to the Bundles instance for atlas parsing
+    await this.bundles.registerAtlasBundle(bundleId, opts);
   }
 
   /**
@@ -539,14 +420,12 @@ export class AssetManager {
   extra = {
     // Get an array of all currently registered bundle ids.
     getRegisteredBundleIds: (): string[] => {
-      return this.#bundles ? Array.from(this.#bundles.keys()) : [];
+      return this.bundles.getRegisteredBundleIds();
     },
 
     // Get an array of all currently loaded bundle ids.
     getLoadedBundleIds: (): string[] => {
-      return Array.from(this.#bundles.entries())
-        .filter(([, value]) => value.isLoaded)
-        .map(([key]) => key);
+      return this.bundles.getLoadedBundleIds();
     },
 
     /**
@@ -558,14 +437,7 @@ export class AssetManager {
      * @param coords - The atlas coordinates to set
      */
     setAtlasCoords: (id: TextureId, coords: AtlasCoords) => {
-      const oldCoords: AtlasCoords[] | undefined = this.#textures.get(id);
-      if (!oldCoords) return;
-      const indexToModify = oldCoords.findIndex(
-        (coord) => coord.atlasIndex === coords.atlasIndex,
-      );
-      if (indexToModify === -1) return;
-      oldCoords[indexToModify] = coords;
-      this.#textures.set(id, oldCoords);
+      this.bundles.setAtlasCoords(id, coords);
     },
 
     /**
@@ -575,12 +447,7 @@ export class AssetManager {
      * @returns An array of the atlas coordinates for the texture
      */
     getAtlasCoords: (id: TextureId): AtlasCoords[] => {
-      if (!this.#textures.has(id)) {
-        throw new Error(
-          `Texture ${id} not found in atlas. Have you called toodle.loadBundle with a bundle that contains this id (or toodle.loadTextures with this id as a key)?`,
-        );
-      }
-      return this.#textures.get(id) ?? [];
+      return this.bundles.getAtlasCoords(id);
     },
 
     /**
@@ -590,13 +457,7 @@ export class AssetManager {
      * @returns Point of the texture's associated X,Y offset
      */
     getTextureOffset: (id: TextureId): Vec2 => {
-      const texture: AtlasCoords[] | undefined = this.#textures.get(id);
-      if (!texture) {
-        throw new Error(
-          `Texture ${id} not found in atlas. Have you called toodle.loadTextures with this id or toodle.loadBundle with a bundle that contains it?`,
-        );
-      }
-      return texture[0].cropOffset;
+      return this.bundles.getTextureOffset(id);
     },
 
     /**
@@ -675,10 +536,7 @@ export class AssetManager {
       }
 
       for (const [id, region] of atlas.textureRegions) {
-        const existing = this.#textures.get(id);
-        if (existing) {
-          existing.push({ ...region, atlasIndex });
-        } else this.#addTexture(id, region, atlasIndex);
+        this.bundles.addTextureEntry(id, { ...region, atlasIndex });
       }
       return atlasIndex;
     },
@@ -690,17 +548,7 @@ export class AssetManager {
      */
     unloadAtlas: async (atlasIndex: number) => {
       this.#availableIndices.add(atlasIndex);
-      for (const [id, coords] of this.#textures.entries()) {
-        const indexToModify = coords.findIndex(
-          (coord) => coord.atlasIndex === atlasIndex,
-        );
-        if (indexToModify !== -1) {
-          coords.splice(indexToModify, 1);
-        }
-        if (!coords.length) {
-          this.#textures.delete(id);
-        }
-      }
+      this.bundles.removeTextureEntriesForAtlas(atlasIndex);
     },
   };
 

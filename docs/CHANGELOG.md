@@ -4,6 +4,13 @@ A detailed list of all notable changes for every released version.
 
 [All releases](https://www.npmjs.com/package/@bloopjs/toodle)
 
+## [0.0.103](https://github.com/bloopgames/toodle/releases/tag/0.0.103)
+
+- Add `Bundles` class for renderer-agnostic bundle registration and atlas coordinate lookups. This enables WebGL fallback paths to share bundle registration with WebGPU code.
+- `AssetManager` now uses `Bundles` internally and exposes it via `assets.bundles`
+- Add `AssetManagerOptions` to pass a custom `Bundles` instance or texture format to `AssetManager`
+- Breaking: `AssetManager` constructor now takes an `options` object as the 4th parameter instead of a positional `format` parameter
+
 ## [0.0.100](https://github.com/bloopgames/toodle/releases/tag/0.0.100)
 
 - Add `assetManager` option to `Toodle.Quad` and `Toodle.QuadShader`, allowing quads to use a different texture array, for eg an array of rg8 atlases.
