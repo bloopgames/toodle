@@ -6,8 +6,10 @@ const toodle = await Toodle.attach(canvas, {
   limits: { textureArrayLayers: 5 },
 });
 
-await toodle.assets.loadTextures({
-  apple: new URL("https://toodle.gg/img/ItemApple.png"),
+await toodle.assets.registerBundle('main', {
+  textures: {
+    apple: new URL("https://toodle.gg/img/ItemApple.png"),
+  }
 });
 
 const tintedQuad = toodle.Quad("apple", {

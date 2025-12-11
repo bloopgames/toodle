@@ -12,7 +12,8 @@
       "Bash(gzip:*)",
       "Bash(bun tsc:*)",
       "Bash(bun run biome:write:format:*)",
-      "Bash(bun biome format:*)"
+      "Bash(bun biome format:*)",
+      "Bash(bun test:*)"
     ]
   }
 }
