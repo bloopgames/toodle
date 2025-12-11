@@ -14,7 +14,8 @@
       "Bash(bun run biome:write:format:*)",
       "Bash(bun biome format:*)",
       "Bash(bun test:*)",
-      "Bash(biome check:*)"
+      "Bash(biome check:*)",
+      "Bash(bun run biome:check:*)"
     ]
   }
 }

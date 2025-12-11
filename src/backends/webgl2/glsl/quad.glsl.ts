@@ -63,6 +63,13 @@ void main() {
 }
 `;
 
+/**
+ * Default fragment shader for WebGL2 quad rendering.
+ * Custom fragment shaders must follow the same contract:
+ * - Required uniforms: u_resolution, u_textureArray
+ * - Required inputs: v_uv (vec4), v_tint (vec4), v_atlasIndex (flat int)
+ * - Required output: fragColor (vec4)
+ */
 export const fragmentShader = /*glsl*/ `#version 300 es
 precision highp float;
 precision highp sampler2DArray;
@@ -101,3 +108,6 @@ void main() {
   }
 }
 `;
+
+/** Alias for users who want to extend the default shader */
+export const defaultFragmentShader = fragmentShader;

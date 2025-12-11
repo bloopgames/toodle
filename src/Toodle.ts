@@ -66,7 +66,6 @@ export class Toodle {
   #engineUniform: EngineUniform;
   #projectionMatrix: Mat3 = mat3.identity();
   #batcher = new Batcher();
-  #postprocess: PostProcess | null = null;
   #defaultFilter: GPUFilterMode;
   #matrixPool: Pool<Mat3>;
   #atlasSize: Size;
@@ -108,15 +107,18 @@ export class Toodle {
    * Note that this will do the main render pass to an offscreen texture, which may impact performance.
    * Currently only supported in WebGPU mode.
    */
-  get postprocess() {
-    return this.#postprocess;
+  get postprocess(): PostProcess | null {
+    if (this.#backend.type !== "webgpu") return null;
+    return (this.#backend as WebGPUBackend).getPostprocess();
   }
 
   set postprocess(value: PostProcess | null) {
     if (value !== null && this.#backend.type !== "webgpu") {
       throw new Error("Post-processing is only supported in WebGPU mode");
     }
-    this.#postprocess = value;
+    if (this.#backend.type === "webgpu") {
+      (this.#backend as WebGPUBackend).setPostprocess(value);
+    }
   }
 
   /**
@@ -395,7 +397,7 @@ export class Toodle {
   QuadShader(
     label: string,
     instanceCount: number,
-    userCode?: string,
+    userCode: string,
     shaderOpts?: QuadShaderOpts,
   ): IBackendShader {
     return this.#backend.createQuadShader({

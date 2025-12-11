@@ -29,7 +29,12 @@ export class WebGLQuadShader implements IBackendShader {
   #uResolution: WebGLUniformLocation | null = null;
   #uTextureArray: WebGLUniformLocation | null = null;
 
-  constructor(label: string, backend: WebGLBackend, instanceCount: number) {
+  constructor(
+    label: string,
+    backend: WebGLBackend,
+    instanceCount: number,
+    userFragmentShader?: string,
+  ) {
     this.label = label;
     this.#backend = backend;
     this.#instanceCount = instanceCount;
@@ -38,7 +43,11 @@ export class WebGLQuadShader implements IBackendShader {
 
     // Compile shaders
     const vs = this.#compileShader(gl, gl.VERTEX_SHADER, vertexShader);
-    const fs = this.#compileShader(gl, gl.FRAGMENT_SHADER, fragmentShader);
+    const fs = this.#compileShader(
+      gl,
+      gl.FRAGMENT_SHADER,
+      userFragmentShader ?? fragmentShader,
+    );
 
     // Create program
     const program = gl.createProgram();

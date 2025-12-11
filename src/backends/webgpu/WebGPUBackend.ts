@@ -7,6 +7,7 @@ import type { CpuTextureAtlas } from "../../textures/types";
 import { assert } from "../../utils/assert";
 import type { IBackendShader, QuadShaderCreationOpts } from "../IBackendShader";
 import type { IRenderBackend } from "../IRenderBackend";
+import type { PostProcess } from "./postprocess/mod";
 import { WebGPUQuadShader } from "./WebGPUQuadShader";
 
 export type WebGPUBackendOptions = {
@@ -28,6 +29,9 @@ export class WebGPUBackend implements IRenderBackend {
   #presentationFormat: GPUTextureFormat;
   #encoder: GPUCommandEncoder | null = null;
   #renderPass: GPURenderPassEncoder | null = null;
+  #postprocess: PostProcess | null = null;
+  #pingpong: [GPUTexture, GPUTexture] | null = null;
+  #canvas: HTMLCanvasElement;
 
   private constructor(
     device: GPUDevice,
@@ -35,6 +39,7 @@ export class WebGPUBackend implements IRenderBackend {
     presentationFormat: GPUTextureFormat,
     limits: Limits,
     textureAtlas: GPUTexture,
+    canvas: HTMLCanvasElement,
   ) {
     this.#device = device;
     this.#context = context;
@@ -45,6 +50,7 @@ export class WebGPUBackend implements IRenderBackend {
       width: textureAtlas.width,
       height: textureAtlas.height,
     };
+    this.#canvas = canvas;
   }
 
   /**
@@ -96,12 +102,17 @@ export class WebGPUBackend implements IRenderBackend {
       presentationFormat,
       limits,
       textureAtlas,
+      canvas,
     );
   }
 
   startFrame(clearColor: Color, loadOp: "clear" | "load"): void {
     this.#encoder = this.#device.createCommandEncoder();
-    const target = this.#context.getCurrentTexture();
+
+    // If postprocessing, render to ping-pong texture; otherwise render to canvas
+    const target = this.#postprocess
+      ? this.#pingpong![0]
+      : this.#context.getCurrentTexture();
 
     this.#renderPass = this.#encoder.beginRenderPass({
       label: "toodle frame",
@@ -121,6 +132,17 @@ export class WebGPUBackend implements IRenderBackend {
     assert(this.#encoder, "No encoder - did you call startFrame?");
 
     this.#renderPass.end();
+
+    // Run postprocessing if set
+    if (this.#postprocess && this.#pingpong) {
+      this.#postprocess.process(
+        this.#device.queue,
+        this.#encoder,
+        this.#pingpong,
+        this.#context.getCurrentTexture(),
+      );
+    }
+
     this.#device.queue.submit([this.#encoder.finish()]);
 
     this.#renderPass = null;
@@ -177,11 +199,69 @@ export class WebGPUBackend implements IRenderBackend {
   resize(_width: number, _height: number): void {
     // Canvas resize is handled automatically by WebGPU context
     // The presentation size updates on next getCurrentTexture()
+
+    // Recreate ping-pong textures if postprocessing is active
+    if (this.#postprocess && this.#pingpong) {
+      this.#destroyPingPongTextures();
+      this.#createPingPongTextures();
+    }
   }
 
   destroy(): void {
+    this.#destroyPingPongTextures();
     this.textureArrayHandle.destroy();
     this.#device.destroy();
+  }
+
+  /**
+   * Set a post-processor for screen effects.
+   * Setting a post-processor will cause the main render to go to an offscreen texture.
+   * Note: Ping-pong textures are not destroyed when setting to null to avoid
+   * race conditions with in-flight command buffers. They are cleaned up on destroy().
+   */
+  setPostprocess(processor: PostProcess | null): void {
+    this.#postprocess = processor;
+    if (processor && !this.#pingpong) {
+      this.#createPingPongTextures();
+    }
+    // Don't destroy pingpong textures when setting to null - they may still be
+    // referenced by in-flight command buffers. They'll be cleaned up on destroy().
+  }
+
+  /**
+   * Get the current post-processor.
+   */
+  getPostprocess(): PostProcess | null {
+    return this.#postprocess;
+  }
+
+  #createPingPongTextures(): void {
+    const width = this.#canvas.width;
+    const height = this.#canvas.height;
+
+    const createTexture = (label: string) =>
+      this.#device.createTexture({
+        label,
+        size: [width, height],
+        format: this.#presentationFormat,
+        usage:
+          GPUTextureUsage.RENDER_ATTACHMENT |
+          GPUTextureUsage.TEXTURE_BINDING |
+          GPUTextureUsage.COPY_SRC,
+      });
+
+    this.#pingpong = [
+      createTexture("toodle pingpong 0"),
+      createTexture("toodle pingpong 1"),
+    ];
+  }
+
+  #destroyPingPongTextures(): void {
+    if (this.#pingpong) {
+      this.#pingpong[0].destroy();
+      this.#pingpong[1].destroy();
+      this.#pingpong = null;
+    }
   }
 
   getRenderContext(): GPURenderPassEncoder {

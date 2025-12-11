@@ -168,7 +168,12 @@ export class WebGLBackend implements IRenderBackend {
   }
 
   createQuadShader(opts: QuadShaderCreationOpts): IBackendShader {
-    return new WebGLQuadShader(opts.label, this, opts.instanceCount);
+    return new WebGLQuadShader(
+      opts.label,
+      this,
+      opts.instanceCount,
+      opts.userCode,
+    );
   }
 
   resize(_width: number, _height: number): void {

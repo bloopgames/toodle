@@ -13,6 +13,7 @@ export type {
   BlendOperation,
   IRenderBackend,
 } from "./IRenderBackend";
+export { defaultFragmentShader as defaultGLSLFragmentShader } from "./webgl2/glsl/quad.glsl";
 export { WebGLBackend } from "./webgl2/WebGLBackend";
 // WebGPU-specific postprocess utilities
 export {
