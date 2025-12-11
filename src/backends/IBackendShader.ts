@@ -1,5 +1,5 @@
+import type { EngineUniform } from "../coreTypes/EngineUniform";
 import type { SceneNode } from "../scene/SceneNode";
-import type { EngineUniform } from "../shaders/EngineUniform";
 import type { BlendMode } from "./IRenderBackend";
 
 /**

@@ -1,7 +1,7 @@
 import type { Color } from "../coreTypes/Color";
+import type { EngineUniform } from "../coreTypes/EngineUniform";
 import type { Size } from "../coreTypes/Size";
 import type { Limits } from "../limits";
-import type { EngineUniform } from "../shaders/EngineUniform";
 import type { CpuTextureAtlas } from "../textures/types";
 import type { IBackendShader, QuadShaderCreationOpts } from "./IBackendShader";
 

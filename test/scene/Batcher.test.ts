@@ -5,6 +5,7 @@ import { SceneNode } from "../../src/scene/SceneNode";
 
 const render: RenderComponent = {
   shader: {
+    label: "test",
     startFrame: () => {},
     processBatch: () => 0,
     endFrame: () => {},
@@ -108,6 +109,7 @@ describe("Batcher", () => {
       const second = new SceneNode({
         render: {
           shader: {
+            label: "test2",
             processBatch: () => 0,
             startFrame: () => {},
             endFrame: () => {},

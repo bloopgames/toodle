@@ -1,5 +1,5 @@
+import type { EngineUniform } from "../../coreTypes/EngineUniform";
 import type { SceneNode } from "../../scene/SceneNode";
-import type { EngineUniform } from "../../shaders/EngineUniform";
 import { assert } from "../../utils/assert";
 import type { IBackendShader } from "../IBackendShader";
 import { fragmentShader, vertexShader } from "./glsl/quad.glsl";
@@ -134,13 +134,21 @@ export class WebGLQuadShader implements IBackendShader {
 
     // Set uniforms
     if (this.#uViewProjection) {
-      // Convert mat3 to 3x3 uniform
-      // wgpu-matrix mat3 is column-major: [m00, m10, m20, m01, m11, m21, m02, m12, m22]
-      gl.uniformMatrix3fv(
-        this.#uViewProjection,
-        false,
-        uniform.viewProjectionMatrix,
-      );
+      // wgpu-matrix mat3 is stored as 12 floats (3 columns × 4 floats with padding)
+      // WebGL uniformMatrix3fv expects 9 floats, so extract the relevant values
+      const m = uniform.viewProjectionMatrix;
+      const mat3x3 = new Float32Array([
+        m[0],
+        m[1],
+        m[2], // column 0
+        m[4],
+        m[5],
+        m[6], // column 1
+        m[8],
+        m[9],
+        m[10], // column 2
+      ]);
+      gl.uniformMatrix3fv(this.#uViewProjection, false, mat3x3);
     }
 
     if (this.#uResolution) {

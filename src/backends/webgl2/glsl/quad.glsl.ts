@@ -82,6 +82,9 @@ flat in int v_atlasIndex;
 out vec4 fragColor;
 
 void main() {
+  // DEBUG: Output solid magenta to verify draw pipeline works
+  // fragColor = vec4(1.0, 0.0, 1.0, 1.0); return;
+
   vec2 atlasUv = v_uv.xy;
   vec2 originalUv = v_uv.zw;
 

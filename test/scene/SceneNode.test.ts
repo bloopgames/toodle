@@ -358,6 +358,7 @@ describe("SceneNode", () => {
     it("allows attaching a render component", () => {
       const hello: RenderComponent = {
         shader: {
+          label: "test",
           startFrame: () => {},
           processBatch: () => 0,
           endFrame: () => {},

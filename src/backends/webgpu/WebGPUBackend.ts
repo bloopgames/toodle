@@ -1,8 +1,8 @@
 import type { Color } from "../../coreTypes/Color";
+import type { EngineUniform } from "../../coreTypes/EngineUniform";
 import type { Size } from "../../coreTypes/Size";
 import type { Limits, LimitsOptions } from "../../limits";
 import { DEFAULT_LIMITS } from "../../limits";
-import type { EngineUniform } from "../../shaders/EngineUniform";
 import type { CpuTextureAtlas } from "../../textures/types";
 import { assert } from "../../utils/assert";
 import type { IBackendShader, QuadShaderCreationOpts } from "../IBackendShader";
@@ -28,7 +28,6 @@ export class WebGPUBackend implements IRenderBackend {
   #presentationFormat: GPUTextureFormat;
   #encoder: GPUCommandEncoder | null = null;
   #renderPass: GPURenderPassEncoder | null = null;
-  #canvas: HTMLCanvasElement;
 
   private constructor(
     device: GPUDevice,
@@ -41,7 +40,7 @@ export class WebGPUBackend implements IRenderBackend {
     this.#device = device;
     this.#context = context;
     this.#presentationFormat = presentationFormat;
-    this.#canvas = canvas;
+    // Note: canvas parameter kept for potential future use
     this.limits = limits;
     this.textureArrayHandle = textureAtlas;
     this.atlasSize = {

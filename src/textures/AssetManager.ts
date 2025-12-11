@@ -1,4 +1,5 @@
 import type { IRenderBackend } from "../backends/IRenderBackend";
+import type { WebGPUBackend } from "../backends/webgpu/WebGPUBackend";
 import type { Size } from "../coreTypes/Size";
 import type { Vec2 } from "../coreTypes/Vec2";
 import { JumboQuadNode } from "../scene/JumboQuadNode";
@@ -322,7 +323,7 @@ export class AssetManager {
     );
 
     const textShader = new TextShader(
-      device,
+      this.#backend as WebGPUBackend,
       fontPipeline,
       font,
       presentationFormat,
@@ -408,12 +409,12 @@ export class AssetManager {
     const device = this.#backend.getDevice() as GPUDevice;
     const images = new Map<string, TextureWithMetadata>();
 
-    let networkLoadTime = 0;
+    let _networkLoadTime = 0;
     await Promise.all(
       Object.entries(opts.textures).map(async ([id, url]) => {
         const now = performance.now();
         const bitmap = await getBitmapFromUrl(url);
-        networkLoadTime += performance.now() - now;
+        _networkLoadTime += performance.now() - now;
         let textureWrapper: TextureWithMetadata = this.#wrapBitmapToTexture(
           bitmap,
           id,

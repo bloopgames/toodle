@@ -1,4 +1,4 @@
-import type { Color } from "../../coreTypes/Color";
+import type { Color } from "../../../coreTypes/Color";
 import { PostProcessDefaults } from "./mod";
 
 // example of a blur post-process effect using a two-pass Gaussian blur
@@ -16,7 +16,7 @@ export function blur(
   const lines = weights.map((w) => w.toFixed(7)).join(", ");
   const wgslFragment = `let weights = array<f32, ${weights.length}>(${lines});`;
 
-  const brightPipeline = device.createRenderPipeline({
+  const _brightPipeline = device.createRenderPipeline({
     ...PostProcessDefaults.pipelineDescriptor(device),
     label: "toodle post process - brightness pass",
     fragment: {

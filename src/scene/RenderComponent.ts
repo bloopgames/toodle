@@ -1,8 +1,8 @@
-import type { IShader } from "../shaders/IShader";
+import type { IBackendShader } from "../backends/IBackendShader";
 import type { SceneNode } from "./SceneNode";
 
 export type RenderComponent = {
-  shader: IShader;
+  shader: IBackendShader;
   data?: Float32Array;
 
   /**

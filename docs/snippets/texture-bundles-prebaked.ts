@@ -1,12 +1,16 @@
 import { Toodle } from "@bloopjs/toodle";
 
 const canvas = document.querySelector("canvas")!;
+
+const params = new URLSearchParams(window.location.search);
+const useWebGL = params.has("webgl");
+
 const toodle = await Toodle.attach(canvas, {
   filter: "nearest",
   limits: {
     textureArrayLayers: 5,
   },
-  backend: 'webgl2',
+  backend: useWebGL ? "webgl2" : "webgpu",
 });
 
 // const baseUrl = window.location.href;

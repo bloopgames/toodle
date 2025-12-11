@@ -4,15 +4,8 @@ import {
   type StructuredView,
 } from "webgpu-utils";
 import { WgslReflect } from "wgsl_reflect";
+import type { EngineUniform } from "../../coreTypes/EngineUniform";
 import type { SceneNode } from "../../scene/SceneNode";
-import type { EngineUniform } from "../../shaders/EngineUniform";
-import {
-  codeWithLineNumbers,
-  combineShaderCode,
-  struct2BufferLayout,
-} from "../../shaders/parser";
-import { pixelArtSampler, smoothSampler } from "../../shaders/samplers";
-import quadWgsl from "../../shaders/wgsl/quad.wgsl";
 import { assert } from "../../utils/assert";
 import {
   createGpuPipeline,
@@ -21,7 +14,14 @@ import {
 } from "../../utils/boilerplate";
 import type { IBackendShader } from "../IBackendShader";
 import type { BlendMode } from "../IRenderBackend";
+import {
+  codeWithLineNumbers,
+  combineShaderCode,
+  struct2BufferLayout,
+} from "./parser";
+import { pixelArtSampler, smoothSampler } from "./samplers";
 import type { WebGPUBackend } from "./WebGPUBackend";
+import quadWgsl from "./wgsl/quad.wgsl";
 
 type InstanceData = {
   cpuBuffer: Float32Array<ArrayBuffer>;

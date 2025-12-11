@@ -22,7 +22,7 @@ export async function getBitmapFromUrl(url: URL): Promise<ImageBitmap> {
  * @param blob - The Blob containing the image.
  * @returns A Promise resolving to the image as ImageData.
  */
-async function blobToImageData(blob: Blob) {
+async function _blobToImageData(blob: Blob) {
   const imageBitmap: ImageBitmap = await createImageBitmap(blob);
 
   const canvas = document.createElement("canvas");
@@ -57,7 +57,7 @@ async function blobToImageData(blob: Blob) {
  * @param tileSize - Size of each checker tile (default is 8).
  * @returns The generated ImageData object.
  */
-function createCheckerboardImageData(
+function _createCheckerboardImageData(
   width: number,
   height: number,
   tileSize = 8,

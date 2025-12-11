@@ -26,7 +26,7 @@ export const PostProcessDefaults = {
     });
   },
 
-  vertexBufferLayout(device: GPUDevice): GPUVertexBufferLayout {
+  vertexBufferLayout(_device: GPUDevice): GPUVertexBufferLayout {
     return {
       arrayStride: 4 * 4,
       attributes: [{ shaderLocation: 0, offset: 0, format: "float32x2" }],
