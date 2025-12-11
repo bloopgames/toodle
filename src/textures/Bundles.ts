@@ -135,7 +135,7 @@ export class Bundles {
    * @param bundleId - Unique identifier for this bundle
    * @param atlases - Pre-built CPU texture atlases
    */
-  registerRawBundle(bundleId: BundleId, atlases: CpuTextureAtlas[]): void {
+  registerDynamicBundle(bundleId: BundleId, atlases: CpuTextureAtlas[]): void {
     this.#bundles.set(bundleId, {
       atlases,
       atlasIndices: [],

@@ -406,7 +406,7 @@ export class AssetManager {
       this.#device,
     );
 
-    this.bundles.registerRawBundle(bundleId, atlases);
+    this.bundles.registerDynamicBundle(bundleId, atlases);
   }
 
   async #registerBundleFromAtlases(bundleId: BundleId, opts: AtlasBundleOpts) {
