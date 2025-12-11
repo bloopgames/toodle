@@ -77,9 +77,10 @@ export class AssetManager {
   getSize(id: TextureId): Size {
     const coords = this.extra.getAtlasCoords(id);
     const originalScale = coords[0].uvScale;
+    // Use atlasSize instead of textureAtlas.width/height for WebGL2 compatibility
     return {
-      width: originalScale.width * this.textureAtlas.width,
-      height: originalScale.height * this.textureAtlas.height,
+      width: originalScale.width * this.atlasSize.width,
+      height: originalScale.height * this.atlasSize.height,
     };
   }
 
@@ -92,9 +93,10 @@ export class AssetManager {
   getCroppedSize(id: TextureId): Size {
     const scaledUvs = this.extra.getAtlasCoords(id)[0].uvScaleCropped;
     if (scaledUvs) {
+      // Use atlasSize instead of textureAtlas.width/height for WebGL2 compatibility
       return {
-        width: scaledUvs.width * this.textureAtlas.width,
-        height: scaledUvs.height * this.textureAtlas.height,
+        width: scaledUvs.width * this.atlasSize.width,
+        height: scaledUvs.height * this.atlasSize.height,
       };
     }
     return this.getSize(id);
