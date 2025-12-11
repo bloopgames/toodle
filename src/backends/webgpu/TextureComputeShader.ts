@@ -1,12 +1,11 @@
-import computeShader from "./pixel-scraping.wgsl";
-import type { TextureWithMetadata } from "./types";
+import type { TextureWithMetadata } from "../../textures/types";
+import computeShader from "./wgsl/pixel-scraping.wgsl";
 
 // Constants
 const BOUNDING_BOX_SIZE = 4 * Uint32Array.BYTES_PER_ELEMENT;
 const WORKGROUP_SIZE = 8;
 const MAX_BOUND = 0xffffffff;
 const MIN_BOUND = 0x00000000;
-const _BYTES_PER_PIXEL = 4;
 
 /**
  * The data returned by the compute shader that represents the opaque pixels in a texture.

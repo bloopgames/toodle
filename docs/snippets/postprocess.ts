@@ -1,17 +1,21 @@
-import { Toodle, Colors, Shaders } from "@bloopjs/toodle";
+import { Toodle, Colors, Backends } from "@bloopjs/toodle";
 
 const canvas = document.querySelector("canvas")!;
 const toodle = await Toodle.attach(canvas, { filter: "linear" });
 
-const device = toodle.debug.device;
-const presentationFormat = toodle.debug.presentationFormat;
+if (!(toodle.backend instanceof Backends.WebGPUBackend)) {
+  throw new Error("Post-processing requires WebGPU backend");
+}
+
+const device = toodle.backend.device;
+const presentationFormat = toodle.backend.getPresentationFormat();
 
 const pipeline = device.createRenderPipeline({
   label: "color inversion pipeline",
   layout: "auto",
   primitive: { topology: "triangle-strip" },
   vertex: {
-    module: Shaders.PostProcessDefaults.vertexShader(device),
+    module: Backends.PostProcessDefaults.vertexShader(device),
   },
   fragment: {
     targets: [{ format: presentationFormat }],
@@ -32,7 +36,7 @@ const pipeline = device.createRenderPipeline({
 });
 
 // Create a simple color inversion post-process effect
-const postprocess: Shaders.PostProcess = {
+const postprocess: Backends.PostProcess = {
   process(queue, encoder, pingpong, screen) {
     const renderPass = encoder.beginRenderPass({
       label: "invert colors render pass",
@@ -46,7 +50,7 @@ const postprocess: Shaders.PostProcess = {
       ],
     });
 
-    const sampler = Shaders.PostProcessDefaults.sampler(device);
+    const sampler = Backends.PostProcessDefaults.sampler(device);
 
     const bindGroup = device.createBindGroup({
       label: "color inversion bind group",

@@ -33,14 +33,12 @@ export class WebGPUBackend implements IRenderBackend {
     device: GPUDevice,
     context: GPUCanvasContext,
     presentationFormat: GPUTextureFormat,
-    canvas: HTMLCanvasElement,
     limits: Limits,
     textureAtlas: GPUTexture,
   ) {
     this.#device = device;
     this.#context = context;
     this.#presentationFormat = presentationFormat;
-    // Note: canvas parameter kept for potential future use
     this.limits = limits;
     this.textureArrayHandle = textureAtlas;
     this.atlasSize = {
@@ -96,7 +94,6 @@ export class WebGPUBackend implements IRenderBackend {
       device,
       context,
       presentationFormat,
-      canvas,
       limits,
       textureAtlas,
     );

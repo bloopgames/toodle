@@ -302,7 +302,11 @@ function convertBlendMode(mode: BlendMode): GPUBlendState {
       "dst-alpha": "dst-alpha",
       "one-minus-dst-alpha": "one-minus-dst-alpha",
     };
-    return map[f] ?? "one";
+    const result = map[f];
+    if (!result) {
+      throw new Error(`Unknown blend factor: ${f}`);
+    }
+    return result;
   };
 
   const convertOp = (o: string): GPUBlendOperation => {
@@ -311,7 +315,11 @@ function convertBlendMode(mode: BlendMode): GPUBlendState {
       subtract: "subtract",
       "reverse-subtract": "reverse-subtract",
     };
-    return map[o] ?? "add";
+    const result = map[o];
+    if (!result) {
+      throw new Error(`Unknown blend operation: ${o}`);
+    }
+    return result;
   };
 
   return {

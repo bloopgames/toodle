@@ -1,4 +1,5 @@
 import type { IRenderBackend } from "../backends/IRenderBackend";
+import { TextureComputeShader } from "../backends/webgpu/TextureComputeShader";
 import type { WebGPUBackend } from "../backends/webgpu/WebGPUBackend";
 import type { Size } from "../coreTypes/Size";
 import type { Vec2 } from "../coreTypes/Vec2";
@@ -9,7 +10,6 @@ import { FontPipeline } from "../text/FontPipeline";
 import { MsdfFont } from "../text/MsdfFont";
 import { TextShader } from "../text/TextShader";
 import { Bundles } from "./Bundles";
-import { TextureComputeShader } from "./TextureComputeShader";
 import type {
   AtlasBundleOpts,
   AtlasCoords,

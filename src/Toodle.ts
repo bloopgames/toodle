@@ -47,10 +47,7 @@ export class Toodle {
     instancesEnqueued: 0,
   };
 
-  /** sometimes for debugging you might want to access the GPU device, this should not be necessary in normal operation */
-  debug: { device: GPUDevice; presentationFormat: GPUTextureFormat };
-
-  /** The render backend (WebGPU or WebGL) */
+  /** The render backend (WebGPU or WebGL2) */
   #backend: IRenderBackend;
 
   /**
@@ -93,20 +90,6 @@ export class Toodle {
 
     // Create AssetManager with the backend
     this.assets = new AssetManager(backend);
-
-    // Set debug info for WebGPU backend
-    if (backend.type === "webgpu") {
-      const device = backend.getDevice() as GPUDevice;
-      const presentationFormat =
-        backend.getPresentationFormat() as GPUTextureFormat;
-      this.debug = { device, presentationFormat };
-    } else {
-      // WebGL path - debug info will be different
-      this.debug = {} as {
-        device: GPUDevice;
-        presentationFormat: GPUTextureFormat;
-      };
-    }
 
     this.#atlasSize = backend.atlasSize;
     this.#engineUniform = {
@@ -745,30 +728,17 @@ export class Toodle {
   }
 
   /**
-   * Advanced and niche features
+   * Get the render backend instance.
+   * Cast to WebGPUBackend or WebGLBackend to access backend-specific properties.
+   *
+   * @example
+   * if (toodle.backend instanceof WebGPUBackend) {
+   *   const device = toodle.backend.device;
+   * }
    */
-  extra = {
-    /**
-     * Get the GPU device used by this Toodle instance (WebGPU only).
-     */
-    device: (): GPUDevice => {
-      return this.#backend.getDevice() as GPUDevice;
-    },
-
-    /**
-     * Get the type of backend being used.
-     */
-    backendType: (): BackendType => {
-      return this.#backend.type;
-    },
-
-    /**
-     * Get the render backend instance.
-     */
-    backend: (): IRenderBackend => {
-      return this.#backend;
-    },
-  };
+  get backend(): WebGPUBackend | WebGLBackend {
+    return this.#backend as WebGPUBackend | WebGLBackend;
+  }
 }
 
 export type StartFrameOptions = {

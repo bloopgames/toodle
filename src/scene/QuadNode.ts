@@ -144,6 +144,10 @@ export class QuadNode extends SceneNode {
     return size;
   }
 
+  set size(val: Size) {
+    super.size = val;
+  }
+
   /**
    * This is the final model matrix used to render the quad, which
    * may differ from the matrix passed down to the node's children.

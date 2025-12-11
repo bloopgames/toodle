@@ -12,7 +12,7 @@ A detailed list of all notable changes for every released version.
     backend: "webgl2", // or "webgpu" (default)
   });
   ```
-- Internal refactoring: Introduced `IBackendShader` and `IRenderBackend` interfaces to support multiple rendering backends
+- Introduce `IBackendShader` and `IRenderBackend` interfaces to support multiple rendering backends
 
 ## [0.0.104](https://github.com/bloopgames/toodle/releases/tag/0.0.104)
 
