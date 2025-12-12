@@ -16,8 +16,8 @@ layout(location = 3) in vec4 a_tint;
 layout(location = 4) in vec4 a_uvOffsetAndScale;
 // location 5 is the crop offset and scale
 layout(location = 5) in vec4 a_cropOffsetAndScale;
-// location 6 is the atlas index
-layout(location = 6) in float a_atlasIndex;
+// location 6 is the atlas index (integer attribute)
+layout(location = 6) in uint a_atlasIndex;
 
 // Outputs to fragment shader
 out vec4 v_uv; // xy = atlas uv, zw = original uv
@@ -61,6 +61,7 @@ void main() {
   v_tint = a_tint;
   v_atlasIndex = int(a_atlasIndex);
 }
+
 `;
 
 /**

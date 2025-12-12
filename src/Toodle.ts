@@ -78,12 +78,12 @@ export class Toodle {
     backend: IRenderBackend,
     canvas: HTMLCanvasElement,
     resolution: Resolution,
-    options: ToodleOptions
+    options: ToodleOptions,
   ) {
     this.#backend = backend;
     this.#matrixPool = new Pool<Mat3>(
       () => mat3.identity(),
-      backend.limits.instanceCount
+      backend.limits.instanceCount,
     );
     this.#defaultFilter = options.filter ?? "linear";
 
@@ -296,7 +296,7 @@ export class Toodle {
       mat3.mul(
         this.#projectionMatrix,
         this.camera.matrix,
-        this.#engineUniform.viewProjectionMatrix
+        this.#engineUniform.viewProjectionMatrix,
       );
       this.#engineUniform.resolution = this.#resolution;
 
@@ -310,7 +310,7 @@ export class Toodle {
       this.diagnostics.instancesEnqueued = this.#batcher.nodes.length;
       if (this.#batcher.nodes.length > this.limits.instanceCount) {
         const err = new Error(
-          `ToodleInstanceCap: ${this.batcher.nodes.length} instances enqueued, max is ${this.limits.instanceCount}`
+          `ToodleInstanceCap: ${this.batcher.nodes.length} instances enqueued, max is ${this.limits.instanceCount}`,
         );
         err.name = "ToodleInstanceCap";
         throw err;
@@ -320,7 +320,7 @@ export class Toodle {
         for (const pipeline of layer.pipelines) {
           this.diagnostics.pipelineSwitches++;
           this.diagnostics.drawCalls += pipeline.shader.processBatch(
-            pipeline.nodes
+            pipeline.nodes,
           );
         }
       }
@@ -346,14 +346,14 @@ export class Toodle {
    */
   convertSpace(
     point: Point,
-    options: { from: "screen" | "world"; to: "world" | "screen" }
+    options: { from: "screen" | "world"; to: "world" | "screen" },
   ): Point {
     if (options.from === "screen" && options.to === "world") {
       return convertScreenToWorld(
         point,
         this.camera,
         this.#projectionMatrix,
-        this.#resolution
+        this.#resolution,
       );
     }
 
@@ -362,7 +362,7 @@ export class Toodle {
         point,
         this.camera,
         this.#projectionMatrix,
-        this.#resolution
+        this.#resolution,
       );
     }
 
@@ -371,7 +371,7 @@ export class Toodle {
     }
 
     throw new Error(
-      `Unknown conversion from: ${options.from} to: ${options.to}`
+      `Unknown conversion from: ${options.from} to: ${options.to}`,
     );
   }
 
@@ -398,7 +398,7 @@ export class Toodle {
     label: string,
     instanceCount: number,
     userCode: string,
-    shaderOpts?: QuadShaderOpts
+    shaderOpts?: QuadShaderOpts,
   ): IBackendShader {
     return this.#backend.createQuadShader({
       label,
@@ -601,11 +601,11 @@ export class Toodle {
       };
       const angle = Math.atan2(
         options.end.y - options.start.y,
-        options.end.x - options.start.x
+        options.end.x - options.start.x,
       );
       const length = Math.sqrt(
         (options.end.x - options.start.x) ** 2 +
-          (options.end.y - options.start.y) ** 2
+          (options.end.y - options.start.y) ** 2,
       );
 
       const line = new QuadNode(
@@ -630,7 +630,7 @@ export class Toodle {
           },
           position: center,
         },
-        this.#matrixPool
+        this.#matrixPool,
       );
 
       return line;
@@ -715,7 +715,7 @@ export class Toodle {
         width: canvas.clientWidth,
         height: canvas.clientHeight,
       },
-      options || {}
+      options || {},
     );
   }
 

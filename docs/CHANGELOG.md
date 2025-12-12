@@ -20,12 +20,14 @@ Note: WebGL2 fallback is not as performant as WebGPU and does not have feature p
 - Shape rendering
 - Batched / instanced rendering
 - Layout / screen space
+- Registering + loading pre-baked texture atlases
 
 Unsupported features:
 
 - Text rendering / font loading
 - Custom vertex shaders
 - Post-processing
+- Runtime packing of textures into an atlas, loading textures individually
 
 * Introduce `IBackendShader` and `IRenderBackend` interfaces to support multiple rendering backends
 * **Breaking**: GPUDevice and other WebGpu-specific accessors are no longer available on toodle.extra.device() and toodle.debug.device, instead use `(toodle.backend as Backends.WebGpuBackend).device` to get the GPUDevice, presentation format, render pass etc.

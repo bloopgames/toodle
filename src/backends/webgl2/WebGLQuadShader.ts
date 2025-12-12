@@ -130,9 +130,9 @@ export class WebGLQuadShader implements IBackendShader {
     gl.vertexAttribPointer(5, 4, gl.FLOAT, false, INSTANCE_BYTES, 80);
     gl.vertexAttribDivisor(5, 1);
 
-    // atlasIndex at location 6 (stored as float for simplicity)
+    // atlasIndex at location 6 (integer attribute - use vertexAttribIPointer)
     gl.enableVertexAttribArray(6);
-    gl.vertexAttribPointer(6, 1, gl.FLOAT, false, INSTANCE_BYTES, 96);
+    gl.vertexAttribIPointer(6, 1, gl.UNSIGNED_INT, INSTANCE_BYTES, 96);
     gl.vertexAttribDivisor(6, 1);
 
     gl.bindVertexArray(null);
