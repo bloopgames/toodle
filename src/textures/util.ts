@@ -1,4 +1,3 @@
-import { unzipSync } from "fflate";
 import type {
   CpuTextureAtlas,
   TextureRegion,
@@ -14,32 +13,6 @@ export async function getBitmapFromUrl(url: URL): Promise<ImageBitmap> {
     console.error(`Failed to load texture from ${url.href}`, e);
     throw e;
   }
-}
-
-export async function loadZip(
-  zipUrl: URL,
-): Promise<{ path: string; bitmap: ImageBitmap }[]> {
-  console.time("fetch zip");
-  const zip = await fetch(zipUrl);
-  const zipBlob = await zip.blob();
-  const zipUint8Array = await zipBlob.arrayBuffer();
-  console.timeEnd("fetch zip");
-
-  console.time("unzip");
-  const files = unzipSync(new Uint8Array(zipUint8Array));
-  console.timeEnd("unzip");
-
-  console.time("create bitmaps");
-  const validFiles = Object.entries(files).filter(
-    ([path]) => !path.match("__MACOS") && path.endsWith(".png"),
-  );
-
-  return await Promise.all(
-    validFiles.map(async ([path, file]) => {
-      const bitmap = await createImageBitmap(new Blob([file]));
-      return { path, bitmap };
-    }),
-  );
 }
 
 export async function packBitmapsToAtlas(

@@ -4,6 +4,10 @@ A detailed list of all notable changes for every released version.
 
 [All releases](https://www.npmjs.com/package/@bloopjs/toodle)
 
+## [0.1.2](https://github.com/bloopgames/toodle/releases/tag/0.1.2)
+
+- **Breaking**: Remove `fflate` dependency and `loadZip` utility function. If you were using `loadZip`, you can use the browser's native `DecompressionStream` API or install `fflate` directly in your project.
+
 ## [0.1.0](https://github.com/bloopgames/toodle/releases/tag/0.1.0)
 
 Add **WebGL2 fallback renderer** for browsers without WebGPU support. Use `backend: "webgl2"` in the options passed to `Toodle.attach()`:
