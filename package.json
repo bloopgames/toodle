@@ -39,7 +39,6 @@
     "typescript": "^5.7.2"
   },
   "dependencies": {
-    "fflate": "^0.8.2",
     "webgpu-utils": "^1.9.3",
     "wgpu-matrix": "^3.3.0",
     "wgsl_reflect": "^1.0.14"
