@@ -42,6 +42,7 @@ export class WebGLQuadShader implements IBackendShader {
     if (!atlas) {
       throw new Error(`Atlas "${atlasId ?? "default"}" not found`);
     }
+
     this.#atlas = atlas;
     this.label = label;
     this.#backend = backend;
@@ -143,10 +144,21 @@ export class WebGLQuadShader implements IBackendShader {
     gl.deleteShader(fs);
   }
 
+  #cachedUniform: EngineUniform | null = null;
+
   startFrame(uniform: EngineUniform): void {
     this.#instanceIndex = 0;
+    // Cache uniform for use in processBatch - WebGL state is global,
+    // so we need to set program/uniforms/textures right before drawing
+    this.#cachedUniform = uniform;
+  }
 
+  #bindState(): void {
     const gl = this.#backend.gl;
+    const uniform = this.#cachedUniform;
+    if (!uniform)
+      throw new Error("Tried to bind state but engine uniform is not set");
+
     gl.useProgram(this.#program);
 
     // Set uniforms
@@ -186,6 +198,10 @@ export class WebGLQuadShader implements IBackendShader {
 
   processBatch(nodes: SceneNode[]): number {
     const gl = this.#backend.gl;
+
+    // Bind program, uniforms, and textures right before drawing
+    // (WebGL state is global, so this must happen per-batch)
+    this.#bindState();
 
     if (nodes.length > this.#instanceCount) {
       throw new Error(
