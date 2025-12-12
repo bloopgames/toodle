@@ -186,7 +186,6 @@ export class WebGLQuadShader implements IBackendShader {
 
   processBatch(nodes: SceneNode[]): number {
     const gl = this.#backend.gl;
-    const batchStartInstanceIndex = this.#instanceIndex;
 
     if (nodes.length > this.#instanceCount) {
       throw new Error(
@@ -196,11 +195,12 @@ export class WebGLQuadShader implements IBackendShader {
 
     let instanceCount = 0;
 
+    // WebGL2 doesn't support firstInstance in drawArraysInstanced,
+    // so we always write starting at offset 0 for each batch
     for (let i = 0; i < nodes.length; i++) {
       const instance = nodes[i];
       assert(instance.renderComponent, "instance has no render component");
-      const floatOffset =
-        (batchStartInstanceIndex + instanceCount) * INSTANCE_FLOATS;
+      const floatOffset = instanceCount * INSTANCE_FLOATS;
 
       instanceCount += instance.renderComponent.writeInstance(
         instance,
@@ -209,25 +209,22 @@ export class WebGLQuadShader implements IBackendShader {
       );
     }
 
-    // Upload instance data to GPU
+    // Upload instance data to GPU starting at offset 0
     gl.bindBuffer(gl.ARRAY_BUFFER, this.#instanceBuffer);
-    const byteOffset = batchStartInstanceIndex * INSTANCE_BYTES;
-    const byteLength = instanceCount * INSTANCE_BYTES;
 
     gl.bufferSubData(
       gl.ARRAY_BUFFER,
-      byteOffset,
+      0,
       this.#cpuBuffer,
-      (byteOffset / Float32Array.BYTES_PER_ELEMENT) | 0,
-      (byteLength / Float32Array.BYTES_PER_ELEMENT) | 0,
+      0,
+      instanceCount * INSTANCE_FLOATS,
     );
 
-    // Draw instances
+    // Draw instances from offset 0
     gl.bindVertexArray(this.#vao);
     gl.drawArraysInstanced(gl.TRIANGLE_STRIP, 0, 4, instanceCount);
     gl.bindVertexArray(null);
 
-    this.#instanceIndex += instanceCount;
     return 1;
   }
 
