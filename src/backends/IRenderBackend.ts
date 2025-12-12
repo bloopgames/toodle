@@ -4,6 +4,7 @@ import type { Size } from "../coreTypes/Size";
 import type { Limits } from "../limits";
 import type { CpuTextureAtlas } from "../textures/types";
 import type { IBackendShader, QuadShaderCreationOpts } from "./IBackendShader";
+import type { ITextureAtlas, TextureAtlasOptions } from "./ITextureAtlas";
 
 export type BackendType = "webgpu" | "webgl2";
 
@@ -42,11 +43,11 @@ export interface IRenderBackend {
   /** Engine limits (texture size, instance count, etc.) */
   readonly limits: Limits;
 
-  /** Size of the texture atlas */
+  /** Size of the default texture atlas */
   readonly atlasSize: Size;
 
-  /** The GPU texture array handle (GPUTexture for WebGPU, WebGLTexture for WebGL) */
-  readonly textureArrayHandle: unknown;
+  /** Default atlas ID (always "default") */
+  readonly defaultAtlasId: string;
 
   /**
    * Begin a new frame.
@@ -70,8 +71,35 @@ export interface IRenderBackend {
 
   /**
    * Upload a CPU texture atlas to a GPU texture array layer.
+   * @param atlas - The CPU-side atlas data to upload
+   * @param layerIndex - Which layer in the texture array to upload to
+   * @param atlasId - Which atlas to upload to (default: "default")
    */
-  uploadAtlas(atlas: CpuTextureAtlas, layerIndex: number): Promise<void>;
+  uploadAtlas(
+    atlas: CpuTextureAtlas,
+    layerIndex: number,
+    atlasId?: string,
+  ): Promise<void>;
+
+  /**
+   * Create a new texture atlas.
+   * @param id - Unique identifier for this atlas
+   * @param options - Atlas configuration (format, layers, size)
+   */
+  createTextureAtlas(id: string, options?: TextureAtlasOptions): ITextureAtlas;
+
+  /**
+   * Get a texture atlas by ID.
+   * @param id - Atlas identifier or defaults to "default"
+   * @returns The atlas, or null if not found
+   */
+  getTextureAtlas(id?: string): ITextureAtlas | null;
+
+  /**
+   * Destroy a texture atlas and free GPU resources.
+   * @param id - Atlas identifier
+   */
+  destroyTextureAtlas(id: string): void;
 
   /**
    * Create a quad shader for instanced rendering.

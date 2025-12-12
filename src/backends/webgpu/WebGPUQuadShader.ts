@@ -14,6 +14,7 @@ import {
 } from "../../utils/boilerplate";
 import type { IBackendShader } from "../IBackendShader";
 import type { BlendMode } from "../IRenderBackend";
+import type { ITextureAtlas } from "../ITextureAtlas";
 import {
   codeWithLineNumbers,
   combineShaderCode,
@@ -37,6 +38,7 @@ export class WebGPUQuadShader implements IBackendShader {
   readonly code: string;
 
   #backend: WebGPUBackend;
+  #atlas: ITextureAtlas;
   #uniformValues: StructuredView;
   #instanceData: InstanceData;
   #instanceIndex = 0;
@@ -52,7 +54,13 @@ export class WebGPUQuadShader implements IBackendShader {
     instanceCount: number,
     userCode?: string,
     blendMode?: BlendMode,
+    atlasId?: string,
   ) {
+    const atlas = backend.getTextureAtlas(atlasId ?? "default");
+    if (!atlas) {
+      throw new Error(`Atlas "${atlasId ?? "default"}" not found`);
+    }
+    this.#atlas = atlas;
     this.label = label;
     this.#backend = backend;
     this.#instanceCount = instanceCount;
@@ -250,7 +258,7 @@ export class WebGPUQuadShader implements IBackendShader {
   }
 
   #createBindGroups(device: GPUDevice): GPUBindGroup[] {
-    const textureAtlas = this.#backend.textureArrayHandle as GPUTexture;
+    const textureAtlas = this.#atlas.handle as GPUTexture;
 
     const bindGroup = device.createBindGroup({
       label: `${this.label} engine bind group`,

@@ -14,6 +14,8 @@ export type QuadShaderCreationOpts = {
   userCode?: string;
   /** Blend mode for alpha compositing */
   blendMode?: BlendMode;
+  /** Which texture atlas to bind (default: "default") */
+  atlasId?: string;
 };
 
 /**

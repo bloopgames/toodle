@@ -7,6 +7,11 @@ import type { CpuTextureAtlas } from "../../textures/types";
 import { assert } from "../../utils/assert";
 import type { IBackendShader, QuadShaderCreationOpts } from "../IBackendShader";
 import type { IRenderBackend } from "../IRenderBackend";
+import type {
+  ITextureAtlas,
+  TextureAtlasFormat,
+  TextureAtlasOptions,
+} from "../ITextureAtlas";
 import type { PostProcess } from "./postprocess/mod";
 import { WebGPUQuadShader } from "./WebGPUQuadShader";
 
@@ -22,7 +27,9 @@ export class WebGPUBackend implements IRenderBackend {
   readonly type = "webgpu" as const;
   readonly limits: Limits;
   readonly atlasSize: Size;
-  readonly textureArrayHandle: GPUTexture;
+  readonly defaultAtlasId = "default";
+
+  #atlases = new Map<string, ITextureAtlas>();
 
   #device: GPUDevice;
   #context: GPUCanvasContext;
@@ -38,17 +45,15 @@ export class WebGPUBackend implements IRenderBackend {
     context: GPUCanvasContext,
     presentationFormat: GPUTextureFormat,
     limits: Limits,
-    textureAtlas: GPUTexture,
     canvas: HTMLCanvasElement,
   ) {
     this.#device = device;
     this.#context = context;
     this.#presentationFormat = presentationFormat;
     this.limits = limits;
-    this.textureArrayHandle = textureAtlas;
     this.atlasSize = {
-      width: textureAtlas.width,
-      height: textureAtlas.height,
+      width: limits.textureSize,
+      height: limits.textureSize,
     };
     this.#canvas = canvas;
   }
@@ -85,25 +90,22 @@ export class WebGPUBackend implements IRenderBackend {
       ...options.limits,
     };
 
-    const format = options.format ?? "rgba8unorm";
-    const textureAtlas = device.createTexture({
-      label: "Toodle Atlas Texture",
-      size: [limits.textureSize, limits.textureSize, limits.textureArrayLayers],
-      format,
-      usage:
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.COPY_DST |
-        GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-
-    return new WebGPUBackend(
+    const backend = new WebGPUBackend(
       device,
       context,
       presentationFormat,
       limits,
-      textureAtlas,
       canvas,
     );
+
+    // Create the default texture atlas
+    backend.createTextureAtlas("default", {
+      format: options.format ?? "rgba8unorm",
+      layers: limits.textureArrayLayers,
+      size: limits.textureSize,
+    });
+
+    return backend;
   }
 
   startFrame(clearColor: Color, loadOp: "clear" | "load"): void {
@@ -154,10 +156,18 @@ export class WebGPUBackend implements IRenderBackend {
     // This is handled in WebGPUQuadShader.startFrame
   }
 
-  async uploadAtlas(atlas: CpuTextureAtlas, layerIndex: number): Promise<void> {
+  async uploadAtlas(
+    atlas: CpuTextureAtlas,
+    layerIndex: number,
+    atlasId?: string,
+  ): Promise<void> {
+    const targetAtlas = this.getTextureAtlas(atlasId ?? "default");
+    assert(targetAtlas, `Atlas "${atlasId ?? "default"}" not found`);
+    const texture = targetAtlas.handle as GPUTexture;
+
     if (atlas.rg8Bytes) {
-      const w = this.textureArrayHandle.width;
-      const h = this.textureArrayHandle.height;
+      const w = texture.width;
+      const h = texture.height;
 
       // WebGPU requires 256-byte bytesPerRow
       const rowBytes = w * 2;
@@ -165,7 +175,7 @@ export class WebGPUBackend implements IRenderBackend {
 
       this.#device.queue.writeTexture(
         {
-          texture: this.textureArrayHandle,
+          texture,
           origin: { x: 0, y: 0, z: layerIndex },
         },
         atlas.rg8Bytes,
@@ -178,7 +188,7 @@ export class WebGPUBackend implements IRenderBackend {
           source: atlas.texture,
         },
         {
-          texture: this.textureArrayHandle,
+          texture,
           origin: [0, 0, layerIndex],
         },
         [atlas.texture.width, atlas.texture.height, 1],
@@ -193,7 +203,44 @@ export class WebGPUBackend implements IRenderBackend {
       opts.instanceCount,
       opts.userCode,
       opts.blendMode,
+      opts.atlasId,
     );
+  }
+
+  createTextureAtlas(id: string, options?: TextureAtlasOptions): ITextureAtlas {
+    if (this.#atlases.has(id)) {
+      throw new Error(`Atlas "${id}" already exists`);
+    }
+
+    const format: TextureAtlasFormat = options?.format ?? "rgba8unorm";
+    const layers = options?.layers ?? this.limits.textureArrayLayers;
+    const size = options?.size ?? this.limits.textureSize;
+
+    const texture = this.#device.createTexture({
+      label: `Toodle Atlas "${id}"`,
+      size: [size, size, layers],
+      format,
+      usage:
+        GPUTextureUsage.TEXTURE_BINDING |
+        GPUTextureUsage.COPY_DST |
+        GPUTextureUsage.RENDER_ATTACHMENT,
+    });
+
+    const atlas: ITextureAtlas = { id, format, layers, size, handle: texture };
+    this.#atlases.set(id, atlas);
+    return atlas;
+  }
+
+  getTextureAtlas(id?: string): ITextureAtlas | null {
+    return this.#atlases.get(id ?? "default") ?? null;
+  }
+
+  destroyTextureAtlas(id: string): void {
+    const atlas = this.#atlases.get(id);
+    if (atlas) {
+      (atlas.handle as GPUTexture).destroy();
+      this.#atlases.delete(id);
+    }
   }
 
   resize(_width: number, _height: number): void {
@@ -209,7 +256,11 @@ export class WebGPUBackend implements IRenderBackend {
 
   destroy(): void {
     this.#destroyPingPongTextures();
-    this.textureArrayHandle.destroy();
+    // Destroy all atlases
+    for (const atlas of this.#atlases.values()) {
+      (atlas.handle as GPUTexture).destroy();
+    }
+    this.#atlases.clear();
     this.#device.destroy();
   }
 

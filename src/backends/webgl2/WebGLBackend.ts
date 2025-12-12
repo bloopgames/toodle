@@ -7,6 +7,11 @@ import type { CpuTextureAtlas } from "../../textures/types";
 import { assert } from "../../utils/assert";
 import type { IBackendShader, QuadShaderCreationOpts } from "../IBackendShader";
 import type { IRenderBackend } from "../IRenderBackend";
+import type {
+  ITextureAtlas,
+  TextureAtlasFormat,
+  TextureAtlasOptions,
+} from "../ITextureAtlas";
 import { WebGLQuadShader } from "./WebGLQuadShader";
 
 export type WebGLBackendOptions = {
@@ -21,28 +26,24 @@ export class WebGLBackend implements IRenderBackend {
   readonly type = "webgl2" as const;
   readonly limits: Limits;
   readonly atlasSize: Size;
-  readonly textureArrayHandle: WebGLTexture;
+  readonly defaultAtlasId = "default";
 
+  #atlases = new Map<string, ITextureAtlas>();
   #gl: WebGL2RenderingContext;
   #canvas: HTMLCanvasElement;
-  #format: "rgba8unorm" | "rg8unorm";
 
   private constructor(
     gl: WebGL2RenderingContext,
     canvas: HTMLCanvasElement,
     limits: Limits,
-    textureArray: WebGLTexture,
-    format: "rgba8unorm" | "rg8unorm",
   ) {
     this.#gl = gl;
     this.#canvas = canvas;
     this.limits = limits;
-    this.textureArrayHandle = textureArray;
     this.atlasSize = {
       width: limits.textureSize,
       height: limits.textureSize,
     };
-    this.#format = format;
   }
 
   /**
@@ -67,35 +68,16 @@ export class WebGLBackend implements IRenderBackend {
       ...options.limits,
     };
 
-    const format = options.format ?? "rgba8unorm";
+    const backend = new WebGLBackend(gl, canvas, limits);
 
-    // Create texture array
-    const textureArray = gl.createTexture();
-    assert(textureArray, "Failed to create WebGL texture");
+    // Create the default texture atlas
+    backend.createTextureAtlas("default", {
+      format: options.format ?? "rgba8unorm",
+      layers: limits.textureArrayLayers,
+      size: limits.textureSize,
+    });
 
-    gl.bindTexture(gl.TEXTURE_2D_ARRAY, textureArray);
-
-    // Configure texture parameters
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-
-    // Allocate storage for texture array
-    const internalFormat = format === "rg8unorm" ? gl.RG8 : gl.RGBA8;
-
-    gl.texStorage3D(
-      gl.TEXTURE_2D_ARRAY,
-      1, // mip levels
-      internalFormat,
-      limits.textureSize,
-      limits.textureSize,
-      limits.textureArrayLayers,
-    );
-
-    gl.bindTexture(gl.TEXTURE_2D_ARRAY, null);
-
-    return new WebGLBackend(gl, canvas, limits, textureArray, format);
+    return backend;
   }
 
   startFrame(clearColor: Color, loadOp: "clear" | "load"): void {
@@ -128,9 +110,17 @@ export class WebGLBackend implements IRenderBackend {
     // Uniforms are updated per-shader in WebGL, not at the backend level
   }
 
-  async uploadAtlas(atlas: CpuTextureAtlas, layerIndex: number): Promise<void> {
+  async uploadAtlas(
+    atlas: CpuTextureAtlas,
+    layerIndex: number,
+    atlasId?: string,
+  ): Promise<void> {
     const gl = this.#gl;
-    gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.textureArrayHandle);
+    const targetAtlas = this.getTextureAtlas(atlasId ?? "default");
+    assert(targetAtlas, `Atlas "${atlasId ?? "default"}" not found`);
+    const texture = targetAtlas.handle as WebGLTexture;
+
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
 
     if (atlas.rg8Bytes) {
       // Upload raw bytes for RG8 format
@@ -140,8 +130,8 @@ export class WebGLBackend implements IRenderBackend {
         0,
         0,
         layerIndex, // x, y, z offset
-        this.atlasSize.width,
-        this.atlasSize.height,
+        targetAtlas.size,
+        targetAtlas.size,
         1, // width, height, depth
         gl.RG,
         gl.UNSIGNED_BYTE,
@@ -173,7 +163,68 @@ export class WebGLBackend implements IRenderBackend {
       this,
       opts.instanceCount,
       opts.userCode,
+      opts.atlasId,
     );
+  }
+
+  createTextureAtlas(id: string, options?: TextureAtlasOptions): ITextureAtlas {
+    if (this.#atlases.has(id)) {
+      throw new Error(`Atlas "${id}" already exists`);
+    }
+
+    const gl = this.#gl;
+    const format: TextureAtlasFormat = options?.format ?? "rgba8unorm";
+    const layers = options?.layers ?? this.limits.textureArrayLayers;
+    const size = options?.size ?? this.limits.textureSize;
+
+    const texture = gl.createTexture();
+    assert(texture, "Failed to create WebGL texture");
+
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, texture);
+
+    // Configure texture parameters
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D_ARRAY, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    // Allocate storage for texture array
+    const internalFormat = format === "rg8unorm" ? gl.RG8 : gl.RGBA8;
+
+    gl.texStorage3D(
+      gl.TEXTURE_2D_ARRAY,
+      1, // mip levels
+      internalFormat,
+      size,
+      size,
+      layers,
+    );
+
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, null);
+
+    const atlas: ITextureAtlas = { id, format, layers, size, handle: texture };
+    this.#atlases.set(id, atlas);
+    return atlas;
+  }
+
+  getTextureAtlas(id: string): ITextureAtlas | null {
+    return this.#atlases.get(id) ?? null;
+  }
+
+  destroyTextureAtlas(id: string): void {
+    const atlas = this.#atlases.get(id);
+    if (atlas) {
+      this.#gl.deleteTexture(atlas.handle as WebGLTexture);
+      this.#atlases.delete(id);
+    }
+  }
+
+  /**
+   * Get the default texture atlas handle.
+   * @deprecated Use getTextureAtlas("default").handle instead
+   */
+  get textureArrayHandle(): WebGLTexture {
+    return this.getTextureAtlas("default")!.handle as WebGLTexture;
   }
 
   resize(_width: number, _height: number): void {
@@ -182,7 +233,11 @@ export class WebGLBackend implements IRenderBackend {
 
   destroy(): void {
     const gl = this.#gl;
-    gl.deleteTexture(this.textureArrayHandle);
+    // Destroy all atlases
+    for (const atlas of this.#atlases.values()) {
+      gl.deleteTexture(atlas.handle as WebGLTexture);
+    }
+    this.#atlases.clear();
   }
 
   /**
@@ -193,9 +248,9 @@ export class WebGLBackend implements IRenderBackend {
   }
 
   /**
-   * Get the presentation format.
+   * Get the presentation format (of the default atlas).
    */
-  get presentationFormat(): string {
-    return this.#format;
+  get presentationFormat(): TextureAtlasFormat {
+    return this.getTextureAtlas("default")?.format ?? "rgba8unorm";
   }
 }

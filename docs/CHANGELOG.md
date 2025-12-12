@@ -6,13 +6,30 @@ A detailed list of all notable changes for every released version.
 
 ## [0.1.0](https://github.com/bloopgames/toodle/releases/tag/0.1.0)
 
-- Add **WebGL2 fallback renderer** for browsers without WebGPU support. Use `backend: "webgl2"` in the options passed to `Toodle.attach()`:
-  ```ts
-  const toodle = await Toodle.attach(canvas, {
-    backend: "webgl2", // or "webgpu" (default)
-  });
-  ```
-- Introduce `IBackendShader` and `IRenderBackend` interfaces to support multiple rendering backends
+Add **WebGL2 fallback renderer** for browsers without WebGPU support. Use `backend: "webgl2"` in the options passed to `Toodle.attach()`:
+
+```ts
+const toodle = await Toodle.attach(canvas, {
+  backend: "webgl2", // or "webgpu" (default)
+});
+```
+
+Note: WebGL2 fallback is not as performant as WebGPU and does not have feature parity. Currently supported features:
+
+- Quad rendering with default or custom fragment shader
+- Shape rendering
+- Batched / instanced rendering
+- Layout / screen space
+
+Unsupported features:
+
+- Text rendering / font loading
+- Custom vertex shaders
+- Post-processing
+
+* Introduce `IBackendShader` and `IRenderBackend` interfaces to support multiple rendering backends
+* **Breaking**: GPUDevice and other WebGpu-specific accessors are no longer available on toodle.extra.device() and toodle.debug.device, instead use `(toodle.backend as Backends.WebGpuBackend).device` to get the GPUDevice, presentation format, render pass etc.
+* **Breaking** AssetManager signature has changed. If you are using `AssetManager` directly instead of just toodle.assets, you'll need to update to use the new `AssetManagerOptions`
 
 ## [0.0.104](https://github.com/bloopgames/toodle/releases/tag/0.0.104)
 

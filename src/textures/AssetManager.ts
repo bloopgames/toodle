@@ -26,21 +26,28 @@ export type FontId = string;
 export type AssetManagerOptions = {
   /** Existing Bundles instance to use for CPU-side storage. If not provided, a new one is created. */
   bundles?: Bundles;
-  /** Texture format (default: "rgba8unorm") */
-  format?: "rgba8unorm" | "rg8unorm";
+  /** Which texture atlas to use (default: "default") */
+  atlasId?: string;
 };
 
 export class AssetManager {
   readonly bundles: Bundles;
   #backend: IRenderBackend;
+  #atlasId: string;
   #fonts: Map<string, TextShader> = new Map();
   #cropComputeShader: TextureComputeShader | null = null;
   #availableIndices: Set<number> = new Set();
 
   constructor(backend: IRenderBackend, options: AssetManagerOptions = {}) {
     this.#backend = backend;
-    this.bundles =
-      options.bundles ?? new Bundles({ atlasSize: backend.atlasSize.width });
+    this.#atlasId = options.atlasId ?? "default";
+
+    const atlas = backend.getTextureAtlas(this.#atlasId);
+    if (!atlas) {
+      throw new Error(`Atlas "${this.#atlasId}" not found`);
+    }
+
+    this.bundles = options.bundles ?? new Bundles({ atlasSize: atlas.size });
 
     // Initialize compute shader only for WebGPU backend
     if (backend.type === "webgpu") {
@@ -49,23 +56,31 @@ export class AssetManager {
     }
 
     this.#availableIndices = new Set(
-      Array.from({ length: backend.limits.textureArrayLayers }, (_, i) => i),
+      Array.from({ length: atlas.layers }, (_, i) => i),
     );
   }
 
   /**
+   * Get the atlas ID this asset manager uses.
+   */
+  get atlasId(): string {
+    return this.#atlasId;
+  }
+
+  /**
    * Get the GPU texture atlas. For WebGPU, returns GPUTexture.
-   * @deprecated Access via backend.textureArrayHandle instead for new code
+   * @deprecated Access via backend.getTextureAtlas(atlasId).handle instead
    */
   get textureAtlas(): GPUTexture {
-    return this.#backend.textureArrayHandle as GPUTexture;
+    return this.#backend.getTextureAtlas(this.#atlasId)!.handle as GPUTexture;
   }
 
   /**
    * Get the atlas dimensions
    */
   get atlasSize(): Size {
-    return this.#backend.atlasSize;
+    const atlas = this.#backend.getTextureAtlas(this.#atlasId);
+    return { width: atlas!.size, height: atlas!.size };
   }
 
   /**
@@ -496,7 +511,8 @@ export class AssetManager {
      * @returns Usage stats for texture atlases
      */
     getAtlasUsage: () => {
-      const limits = this.#backend.limits;
+      const atlas = this.#backend.getTextureAtlas(this.#atlasId);
+      const totalLayers = atlas?.layers ?? 0;
       return {
         /**
          * The number of texture atlases that are currently unused
@@ -506,11 +522,11 @@ export class AssetManager {
         /**
          * The number of texture atlases that are currently in use.
          */
-        used: limits.textureArrayLayers - this.#availableIndices.size,
+        used: totalLayers - this.#availableIndices.size,
         /**
          * The total number of texture atlases that can be loaded.
          */
-        total: limits.textureArrayLayers,
+        total: totalLayers,
       };
     },
 
@@ -519,8 +535,9 @@ export class AssetManager {
      *
      */
     nextAvailableAtlasIndex: () => {
-      const limits = this.#backend.limits;
-      for (let i = 0; i < limits.textureArrayLayers; i++) {
+      const atlas = this.#backend.getTextureAtlas(this.#atlasId);
+      const totalLayers = atlas?.layers ?? 0;
+      for (let i = 0; i < totalLayers; i++) {
         if (this.#availableIndices.has(i)) {
           this.#availableIndices.delete(i);
           return i;
@@ -539,7 +556,7 @@ export class AssetManager {
       const atlasIndex = this.extra.nextAvailableAtlasIndex();
 
       // Delegate to backend for actual GPU upload
-      await this.#backend.uploadAtlas(atlas, atlasIndex);
+      await this.#backend.uploadAtlas(atlas, atlasIndex, this.#atlasId);
 
       for (const [id, region] of atlas.textureRegions) {
         this.bundles.addTextureEntry(id, { ...region, atlasIndex });

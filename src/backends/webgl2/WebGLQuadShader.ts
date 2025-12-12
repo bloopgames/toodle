@@ -2,6 +2,7 @@ import type { EngineUniform } from "../../coreTypes/EngineUniform";
 import type { SceneNode } from "../../scene/SceneNode";
 import { assert } from "../../utils/assert";
 import type { IBackendShader } from "../IBackendShader";
+import type { ITextureAtlas } from "../ITextureAtlas";
 import { fragmentShader, vertexShader } from "./glsl/quad.glsl";
 import type { WebGLBackend } from "./WebGLBackend";
 
@@ -17,6 +18,7 @@ export class WebGLQuadShader implements IBackendShader {
   readonly label: string;
 
   #backend: WebGLBackend;
+  #atlas: ITextureAtlas;
   #program: WebGLProgram;
   #vao: WebGLVertexArrayObject;
   #instanceBuffer: WebGLBuffer;
@@ -34,7 +36,13 @@ export class WebGLQuadShader implements IBackendShader {
     backend: WebGLBackend,
     instanceCount: number,
     userFragmentShader?: string,
+    atlasId?: string,
   ) {
+    const atlas = backend.getTextureAtlas(atlasId ?? "default");
+    if (!atlas) {
+      throw new Error(`Atlas "${atlasId ?? "default"}" not found`);
+    }
+    this.#atlas = atlas;
     this.label = label;
     this.#backend = backend;
     this.#instanceCount = instanceCount;
@@ -170,10 +178,7 @@ export class WebGLQuadShader implements IBackendShader {
 
     // Bind texture array to texture unit 0
     gl.activeTexture(gl.TEXTURE0);
-    gl.bindTexture(
-      gl.TEXTURE_2D_ARRAY,
-      this.#backend.textureArrayHandle as WebGLTexture,
-    );
+    gl.bindTexture(gl.TEXTURE_2D_ARRAY, this.#atlas.handle as WebGLTexture);
     if (this.#uTextureArray) {
       gl.uniform1i(this.#uTextureArray, 0);
     }
