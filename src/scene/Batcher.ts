@@ -1,4 +1,4 @@
-import type { IShader } from "../shaders/IShader";
+import type { IBackendShader } from "../backends/IBackendShader";
 import type { SceneNode } from "./SceneNode";
 
 type Layer = {
@@ -7,7 +7,7 @@ type Layer = {
 };
 
 export type Pipeline<TNode extends SceneNode = SceneNode> = {
-  shader: IShader;
+  shader: IBackendShader;
   nodes: TNode[];
 };
 
@@ -49,7 +49,7 @@ export class Batcher {
     return layer;
   }
 
-  #findOrCreatePipeline(layer: Layer, shader: IShader) {
+  #findOrCreatePipeline(layer: Layer, shader: IBackendShader) {
     let pipeline = layer.pipelines.find((p) => p.shader === shader);
     if (!pipeline) {
       pipeline = { shader, nodes: [] };

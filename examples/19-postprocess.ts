@@ -1,8 +1,12 @@
-import { Toodle, Colors, Shaders } from "@bloopjs/toodle";
+import { Toodle, Colors, Backends } from "@bloopjs/toodle";
 import { createCanvas } from "./util";
 
 const canvas = createCanvas(window.innerWidth, window.innerHeight);
 const toodle = await Toodle.attach(canvas, { filter: "linear" });
+
+if (!(toodle.backend instanceof Backends.WebGPUBackend)) {
+  throw new Error("Post-processing requires WebGPU backend");
+}
 
 //
 // desired high level api
@@ -48,7 +52,7 @@ const bufferDescriptor: GPUBufferDescriptor = {
   usage: GPUBufferUsage.UNIFORM | GPUBufferUsage.COPY_DST,
 };
 
-const bindGroupLayout = toodle.debug.device.createBindGroupLayout({
+const bindGroupLayout = toodle.backend.device.createBindGroupLayout({
   entries: [
     { binding: 0, visibility: GPUShaderStage.FRAGMENT, texture: {} },
     { binding: 1, visibility: GPUShaderStage.FRAGMENT, sampler: {} },
@@ -133,12 +137,12 @@ struct EngineUniform {
 //   }]
 // }
 
-const device = toodle.debug.device;
-const presentationFormat = toodle.debug.presentationFormat;
+const device = toodle.backend.device;
+const presentationFormat = toodle.backend.presentationFormat;
 const buffers = createBuffers(device);
-const sampler = Shaders.PostProcessDefaults.sampler(device);
+const sampler = Backends.PostProcessDefaults.sampler(device);
 const pipeline = device.createRenderPipeline({
-  ...Shaders.PostProcessDefaults.pipelineDescriptor(device),
+  ...Backends.PostProcessDefaults.pipelineDescriptor(device),
   label: "post process - invert colors",
   layout: device.createPipelineLayout({
     label: 'invert colors layout',
@@ -162,7 +166,7 @@ const pipeline = device.createRenderPipeline({
   },
 });
 
-const postprocess: Shaders.PostProcess = {
+const postprocess: Backends.PostProcess = {
   process(queue: GPUQueue, encoder: GPUCommandEncoder, pingpong: [GPUTexture, GPUTexture], screen: GPUTexture) {
     // should be handled by enginePiece
     writeUniform(queue, buffers.engineUniformBuffer, toodle.resolution.width, toodle.resolution.height, performance.now() / 1000);

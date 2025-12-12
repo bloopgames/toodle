@@ -120,7 +120,7 @@ function findStartingLocation(struct: StructInfo) {
       (attr) => attr.name === "location",
     );
     if (locationAttr) {
-      const location = Number.parseInt(locationAttr.value as string);
+      const location = Number.parseInt(locationAttr.value as string, 10);
       startingLocation = Math.max(startingLocation, location);
     }
   }
@@ -164,7 +164,7 @@ export function struct2BufferLayout(
         throw new Error(`Location attribute is an array for member: ${m.name}`);
       }
 
-      const shaderLocation = Number.parseInt(location);
+      const shaderLocation = Number.parseInt(location, 10);
       if (Number.isNaN(shaderLocation)) {
         throw new Error(
           `Invalid location attribute: ${location} for member: ${m.name}`,

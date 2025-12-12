@@ -1,7 +1,8 @@
 import { WgslReflect } from "wgsl_reflect";
+import type { IBackendShader } from "../backends/IBackendShader";
+import type { WebGPUBackend } from "../backends/webgpu/WebGPUBackend";
+import type { EngineUniform } from "../coreTypes/EngineUniform";
 import type { SceneNode } from "../scene/SceneNode";
-import type { EngineUniform } from "../shaders/EngineUniform";
-import type { IShader } from "../shaders/IShader";
 import type { FontPipeline } from "./FontPipeline";
 import type { MsdfFont } from "./MsdfFont";
 import { findLargestFontSize, measureText, shapeText } from "./shaping";
@@ -15,8 +16,10 @@ if (!struct) {
 }
 const textDescriptorInstanceSize = struct.size;
 
-export class TextShader implements IShader {
-  #device: GPUDevice;
+export class TextShader implements IBackendShader {
+  readonly label = "text";
+
+  #backend: WebGPUBackend;
   #pipeline: GPURenderPipeline;
   #bindGroups: GPUBindGroup[] = [];
   #font: MsdfFont;
@@ -30,13 +33,14 @@ export class TextShader implements IShader {
   #textBlockOffset = 0;
 
   constructor(
-    device: GPUDevice,
+    backend: WebGPUBackend,
     pipeline: FontPipeline,
     font: MsdfFont,
-    colorFormat: GPUTextureFormat,
+    _colorFormat: GPUTextureFormat,
     instanceCount: number,
   ) {
-    this.#device = device;
+    this.#backend = backend;
+    const device = backend.device;
     this.#font = font;
     this.#pipeline = pipeline.pipeline;
     this.#maxCharCount = pipeline.maxCharCount;
@@ -102,7 +106,8 @@ export class TextShader implements IShader {
     this.#bindGroups.push(engineUniformsBindGroup);
   }
 
-  startFrame(device: GPUDevice, uniform: EngineUniform): void {
+  startFrame(uniform: EngineUniform): void {
+    const device = this.#backend.device;
     device.queue.writeBuffer(
       this.#engineUniformsBuffer,
       0,
@@ -112,9 +117,10 @@ export class TextShader implements IShader {
     this.#textBlockOffset = 0;
   }
 
-  processBatch(renderPass: GPURenderPassEncoder, nodes: SceneNode[]): number {
+  processBatch(nodes: SceneNode[]): number {
     if (nodes.length === 0) return 0;
 
+    const renderPass = this.#backend.renderPass;
     renderPass.setPipeline(this.#pipeline);
     for (let i = 0; i < this.#bindGroups.length; i++) {
       renderPass.setBindGroup(i, this.#bindGroups[i]);
@@ -178,7 +184,7 @@ export class TextShader implements IShader {
       );
 
       // Write instance data
-      this.#device.queue.writeBuffer(
+      this.#backend.device.queue.writeBuffer(
         this.#descriptorBuffer,
         textDescriptorOffset * Float32Array.BYTES_PER_ELEMENT,
         this.#cpuDescriptorBuffer,
@@ -186,7 +192,7 @@ export class TextShader implements IShader {
         textDescriptorInstanceSize / Float32Array.BYTES_PER_ELEMENT,
       );
 
-      this.#device.queue.writeBuffer(
+      this.#backend.device.queue.writeBuffer(
         this.#textBlockBuffer,
         this.#textBlockOffset * Float32Array.BYTES_PER_ELEMENT,
         this.#cpuTextBlockBuffer,

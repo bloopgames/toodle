@@ -1,11 +1,16 @@
 import { Toodle } from "@bloopjs/toodle";
 
 const canvas = document.querySelector("canvas")!;
+
+const params = new URLSearchParams(window.location.search);
+const useWebGL = params.has("webgl");
+
 const toodle = await Toodle.attach(canvas, {
   filter: "nearest",
   limits: {
     textureArrayLayers: 5,
   },
+  backend: useWebGL ? "webgl2" : "webgpu",
 });
 
 // const baseUrl = window.location.href;
@@ -22,7 +27,6 @@ await toodle.assets.registerBundle("match_vfx", {
       png: new URL(`${basePath}/match_vfx-1.png`, baseUrl),
     },
   ],
-  autoLoad: true,
 });
 
 toodle.clearColor = { r: 0, g: 0, b: 0, a: 1 };

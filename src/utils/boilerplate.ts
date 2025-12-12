@@ -2,7 +2,7 @@ import {
   makeBindGroupLayoutDescriptors,
   makeShaderDataDefinitions,
 } from "webgpu-utils";
-import type { ShaderDescriptor } from "../shaders/ShaderDescriptor";
+import type { ShaderDescriptor } from "../backends/webgpu/ShaderDescriptor";
 import { assert } from "./assert";
 
 // convenience functions to wrap verbose webgpu apis - not part of public api

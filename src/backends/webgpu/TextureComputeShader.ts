@@ -1,12 +1,11 @@
-import computeShader from "./pixel-scraping.wgsl";
-import type { TextureWithMetadata } from "./types";
+import type { TextureWithMetadata } from "../../textures/types";
+import computeShader from "./wgsl/pixel-scraping.wgsl";
 
 // Constants
 const BOUNDING_BOX_SIZE = 4 * Uint32Array.BYTES_PER_ELEMENT;
 const WORKGROUP_SIZE = 8;
 const MAX_BOUND = 0xffffffff;
 const MIN_BOUND = 0x00000000;
-const BYTES_PER_PIXEL = 4;
 
 /**
  * The data returned by the compute shader that represents the opaque pixels in a texture.
@@ -258,51 +257,6 @@ export class TextureComputeShader {
       cropOffset: { x: 0, y: 0 },
       originalSize: { width: inputTexture.width, height: inputTexture.height },
     };
-  }
-
-  /**
-   * Converts a GPUTexture to an ImageBitmap for display or further use.
-   */
-  async #textureToBitmap(
-    texture: GPUTexture,
-    width: number,
-    height: number,
-  ): Promise<ImageBitmap> {
-    const paddedBytesPerRow = Math.ceil((width * BYTES_PER_PIXEL) / 256) * 256;
-    const bufferSize = paddedBytesPerRow * height;
-
-    const readBuffer = this.#device.createBuffer({
-      size: bufferSize,
-      usage: GPUBufferUsage.COPY_DST | GPUBufferUsage.MAP_READ,
-    });
-
-    const encoder = this.#device.createCommandEncoder();
-    encoder.copyTextureToBuffer(
-      { texture },
-      { buffer: readBuffer, bytesPerRow: paddedBytesPerRow },
-      { width, height, depthOrArrayLayers: 1 },
-    );
-    this.#device.queue.submit([encoder.finish()]);
-
-    await readBuffer.mapAsync(GPUMapMode.READ);
-    const raw = readBuffer.getMappedRange();
-    const rawArray = new Uint8Array(raw);
-
-    const pixelData = new Uint8ClampedArray(width * height * 4);
-    for (let y = 0; y < height; y++) {
-      const src = y * paddedBytesPerRow;
-      const dst = y * width * 4;
-      pixelData.set(rawArray.subarray(src, src + width * 4), dst);
-    }
-    readBuffer.unmap();
-
-    const canvas = document.createElement("canvas");
-    canvas.width = width;
-    canvas.height = height;
-    const ctx = canvas.getContext("2d")!;
-    ctx.putImageData(new ImageData(pixelData, width, height), 0, 0);
-
-    return await createImageBitmap(canvas);
   }
 
   // Bind group helpers

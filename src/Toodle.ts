@@ -1,9 +1,16 @@
 import { type Mat3, mat3 } from "wgpu-matrix";
+import type { IBackendShader } from "./backends/IBackendShader";
+import type { BlendMode } from "./backends/IRenderBackend";
+import type { BackendType, IRenderBackend } from "./backends/mod";
+import { detectBackend } from "./backends/mod";
+import { WebGLBackend } from "./backends/webgl2/mod";
+import { WebGPUBackend } from "./backends/webgpu/mod";
+import type { PostProcess } from "./backends/webgpu/postprocess/mod";
 import type { Color } from "./coreTypes/Color";
+import type { EngineUniform } from "./coreTypes/EngineUniform";
 import type { Point } from "./coreTypes/Point";
 import type { Size } from "./coreTypes/Size";
 import type { Limits, LimitsOptions } from "./limits";
-import { DEFAULT_LIMITS } from "./limits";
 import {
   convertScreenToWorld,
   convertWorldToScreen,
@@ -15,14 +22,9 @@ import { JumboQuadNode, type JumboQuadOptions } from "./scene/JumboQuadNode";
 import { QuadNode, type QuadOptions } from "./scene/QuadNode";
 import { type NodeOptions, SceneNode } from "./scene/SceneNode";
 import type { Resolution } from "./screen/resolution";
-import type { EngineUniform } from "./shaders/EngineUniform";
-import type { IShader } from "./shaders/IShader";
-import type { PostProcess } from "./shaders/postprocess/mod";
-import { QuadShader, type QuadShaderOpts } from "./shaders/QuadShader";
 import { TextNode, type TextOptions } from "./text/TextNode";
 import { AssetManager, type TextureId } from "./textures/AssetManager";
-import { initGpu } from "./utils/boilerplate";
-import { assert, Pool } from "./utils/mod";
+import { Pool } from "./utils/mod";
 
 export class Toodle {
   /**
@@ -45,8 +47,8 @@ export class Toodle {
     instancesEnqueued: 0,
   };
 
-  /** sometimes for debugging you might want to access the GPU device, this should not be necessary in normal operation */
-  debug: { device: GPUDevice; presentationFormat: GPUTextureFormat };
+  /** The render backend (WebGPU or WebGL2) */
+  #backend: IRenderBackend;
 
   /**
    * Camera. This applies a 2d perspective projection matrix to any nodes drawn with toodle.draw
@@ -64,14 +66,6 @@ export class Toodle {
   #engineUniform: EngineUniform;
   #projectionMatrix: Mat3 = mat3.identity();
   #batcher = new Batcher();
-  #limits: Limits;
-  #device: GPUDevice;
-  #context: GPUCanvasContext;
-  #presentationFormat: GPUTextureFormat;
-  #postprocess: PostProcess | null = null;
-  #renderPass?: GPURenderPassEncoder;
-  #encoder?: GPUCommandEncoder;
-  #pingpong!: [GPUTexture, GPUTexture];
   #defaultFilter: GPUFilterMode;
   #matrixPool: Pool<Mat3>;
   #atlasSize: Size;
@@ -81,31 +75,22 @@ export class Toodle {
    * see {@link Toodle.attach} for creating a Toodle instance that draws to a canvas.
    */
   constructor(
-    device: GPUDevice,
-    context: GPUCanvasContext,
-    presentationFormat: GPUTextureFormat,
+    backend: IRenderBackend,
     canvas: HTMLCanvasElement,
     resolution: Resolution,
     options: ToodleOptions,
   ) {
-    this.#limits = {
-      ...DEFAULT_LIMITS,
-      ...options.limits,
-    };
+    this.#backend = backend;
     this.#matrixPool = new Pool<Mat3>(
       () => mat3.identity(),
-      this.#limits.instanceCount,
+      backend.limits.instanceCount,
     );
-    this.#device = device;
-    this.#context = context;
-    this.#presentationFormat = presentationFormat;
     this.#defaultFilter = options.filter ?? "linear";
-    this.assets = new AssetManager(device, presentationFormat, this.#limits);
-    this.#atlasSize = {
-      width: this.assets.textureAtlas.width,
-      height: this.assets.textureAtlas.height,
-    };
-    this.debug = { device, presentationFormat };
+
+    // Create AssetManager with the backend
+    this.assets = new AssetManager(backend);
+
+    this.#atlasSize = backend.atlasSize;
     this.#engineUniform = {
       resolution,
       camera: this.camera,
@@ -113,29 +98,26 @@ export class Toodle {
     };
     this.#resolution = resolution;
 
-    this.#createPingPongTextures(resolution);
     this.resize(this.#resolution);
-
     this.#resizeObserver = this.#createResizeObserver(canvas);
   }
 
   /**
    * Screen shader is an optional slot for post-processing effects.
    * Note that this will do the main render pass to an offscreen texture, which may impact performance.
+   * Currently only supported in WebGPU mode.
    */
-  get postprocess() {
-    return this.#postprocess;
+  get postprocess(): PostProcess | null {
+    if (this.#backend.type !== "webgpu") return null;
+    return (this.#backend as WebGPUBackend).getPostprocess();
   }
 
   set postprocess(value: PostProcess | null) {
-    this.#postprocess = value;
-    const hasChanged =
-      this.#resolution.width !==
-        this.#pingpong[0].width / window.devicePixelRatio ||
-      this.#resolution.height !==
-        this.#pingpong[0].height / window.devicePixelRatio;
-    if (value != null && hasChanged) {
-      this.#createPingPongTextures(this.#resolution);
+    if (value !== null && this.#backend.type !== "webgpu") {
+      throw new Error("Post-processing is only supported in WebGPU mode");
+    }
+    if (this.#backend.type === "webgpu") {
+      (this.#backend as WebGPUBackend).setPostprocess(value);
     }
   }
 
@@ -159,43 +141,8 @@ export class Toodle {
    */
   resize(resolution: Resolution) {
     createProjectionMatrix(resolution, this.#projectionMatrix);
-
-    const hasChanged =
-      resolution.width !== this.#resolution.width ||
-      resolution.height !== this.#resolution.height;
-    if (this.postprocess && hasChanged) {
-      this.#pingpong[0].destroy();
-      this.#pingpong[1].destroy();
-    }
     this.#resolution = resolution;
-  }
-
-  #createPingPongTextures(resolution: Resolution) {
-    if (this.#pingpong?.length) {
-      this.#pingpong[0].destroy();
-      this.#pingpong[1].destroy();
-    }
-
-    this.#pingpong = [
-      this.#device.createTexture({
-        size: {
-          width: resolution.width * window.devicePixelRatio,
-          height: resolution.height * window.devicePixelRatio,
-        },
-        format: this.#presentationFormat,
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
-      }),
-      this.#device.createTexture({
-        size: {
-          width: resolution.width * window.devicePixelRatio,
-          height: resolution.height * window.devicePixelRatio,
-        },
-        format: this.#presentationFormat,
-        usage:
-          GPUTextureUsage.TEXTURE_BINDING | GPUTextureUsage.RENDER_ATTACHMENT,
-      }),
-    ];
+    this.#backend.resize(resolution.width, resolution.height);
   }
 
   #createResizeObserver(canvas: HTMLCanvasElement) {
@@ -265,7 +212,7 @@ export class Toodle {
    * const instanceLimit: number = toodle.limits.instanceCount;
    */
   get limits(): Limits {
-    return this.#limits;
+    return this.#backend.limits;
   }
 
   get batcher(): Batcher {
@@ -277,9 +224,9 @@ export class Toodle {
    */
   get maxPixels() {
     return (
-      this.#limits.textureSize *
-      this.#limits.textureSize *
-      this.#limits.textureArrayLayers
+      this.limits.textureSize *
+      this.limits.textureSize *
+      this.limits.textureArrayLayers
     );
   }
 
@@ -289,9 +236,9 @@ export class Toodle {
    */
   get maxGpuMemory() {
     return (
-      this.#limits.instanceCount *
-      this.#limits.instanceBufferSize *
-      this.#limits.shaderCount
+      this.limits.instanceCount *
+      this.limits.instanceBufferSize *
+      this.limits.shaderCount
     );
   }
 
@@ -306,21 +253,7 @@ export class Toodle {
    * toodle.endFrame();
    */
   startFrame(options?: StartFrameOptions) {
-    this.#encoder = this.#device.createCommandEncoder();
-    const target = this.postprocess
-      ? this.#pingpong[0]
-      : this.#context.getCurrentTexture();
-    this.#renderPass = this.#encoder.beginRenderPass({
-      label: `toodle frame ${this.diagnostics.frames}`,
-      colorAttachments: [
-        {
-          view: target.createView(),
-          clearValue: this.clearColor,
-          loadOp: options?.loadOp ?? "clear",
-          storeOp: "store",
-        },
-      ],
-    });
+    this.#backend.startFrame(this.clearColor, options?.loadOp ?? "clear");
 
     this.diagnostics.drawCalls =
       this.diagnostics.pipelineSwitches =
@@ -360,24 +293,22 @@ export class Toodle {
    */
   endFrame() {
     try {
-      assert(
-        this.#renderPass,
-        "no render pass found. have you called startFrame?",
-      );
-      assert(this.#encoder, "no encoder found. have you called startFrame?");
-
       mat3.mul(
         this.#projectionMatrix,
         this.camera.matrix,
         this.#engineUniform.viewProjectionMatrix,
       );
       this.#engineUniform.resolution = this.#resolution;
+
+      // Update engine uniforms on the backend
+      this.#backend.updateEngineUniform(this.#engineUniform);
+
       for (const pipeline of this.#batcher.pipelines) {
-        pipeline.shader.startFrame(this.#device, this.#engineUniform);
+        pipeline.shader.startFrame(this.#engineUniform);
       }
 
       this.diagnostics.instancesEnqueued = this.#batcher.nodes.length;
-      if (this.#batcher.nodes.length > this.#limits.instanceCount) {
+      if (this.#batcher.nodes.length > this.limits.instanceCount) {
         const err = new Error(
           `ToodleInstanceCap: ${this.batcher.nodes.length} instances enqueued, max is ${this.limits.instanceCount}`,
         );
@@ -389,7 +320,6 @@ export class Toodle {
         for (const pipeline of layer.pipelines) {
           this.diagnostics.pipelineSwitches++;
           this.diagnostics.drawCalls += pipeline.shader.processBatch(
-            this.#renderPass,
             pipeline.nodes,
           );
         }
@@ -398,17 +328,8 @@ export class Toodle {
       for (const pipeline of this.#batcher.pipelines) {
         pipeline.shader.endFrame();
       }
-      this.#renderPass.end();
 
-      if (this.postprocess) {
-        this.postprocess.process(
-          this.#device.queue,
-          this.#encoder,
-          this.#pingpong,
-          this.#context.getCurrentTexture(),
-        );
-      }
-      this.#device.queue.submit([this.#encoder.finish()]);
+      this.#backend.endFrame();
     } finally {
       this.#batcher.flush();
       this.#matrixPool.free();
@@ -466,7 +387,7 @@ export class Toodle {
    *
    * @param label Debug name of the shader
    * @param instanceCount - The maximum number of instances that will be processed by the shader. Note that a worst-case buffer of this many instances will be immediately allocated.
-   * @param userCode - The WGSL code to be used for the shader.
+   * @param userCode - The WGSL code to be used for the shader (WebGPU only).
    * @param blendMode - The blend mode to be used for the shader.
    *
    * @example
@@ -478,16 +399,14 @@ export class Toodle {
     instanceCount: number,
     userCode: string,
     shaderOpts?: QuadShaderOpts,
-  ) {
-    return new QuadShader(
+  ): IBackendShader {
+    return this.#backend.createQuadShader({
       label,
-      shaderOpts?.assetManager ?? this.assets,
-      this.#device,
-      this.#presentationFormat,
-      userCode,
       instanceCount,
-      shaderOpts?.blendMode,
-    );
+      userCode,
+      blendMode: shaderOpts?.blendMode,
+      atlasId: shaderOpts?.atlasId,
+    });
   }
 
   /**
@@ -718,17 +637,18 @@ export class Toodle {
     },
   };
 
-  #quadShader: QuadShader | null = null;
+  #quadShader: IBackendShader | null = null;
 
-  #defaultQuadShader() {
+  #defaultQuadShader(): IBackendShader {
     if (this.#quadShader) {
       return this.#quadShader;
     }
 
-    const shader = this.QuadShader(
-      "default quad shader",
-      this.#limits.instanceCount,
-      /*wgsl*/ `
+    // For WebGPU, we can provide custom WGSL shader code
+    // For WebGL, the backend will use its default shader
+    const userCode =
+      this.#backend.type === "webgpu"
+        ? /*wgsl*/ `
         @fragment
         fn frag(vertex: VertexOutput) -> @location(0) vec4f {
           let color = default_fragment_shader(vertex, ${
@@ -738,8 +658,14 @@ export class Toodle {
           });
           return color;
         }
-      `,
-    );
+      `
+        : undefined;
+
+    const shader = this.#backend.createQuadShader({
+      label: "default quad shader",
+      instanceCount: this.limits.instanceCount,
+      userCode,
+    });
 
     this.#quadShader = shader;
     return shader;
@@ -761,11 +687,29 @@ export class Toodle {
   static async attach(canvas: HTMLCanvasElement, options?: ToodleOptions) {
     canvas.width = canvas.clientWidth * devicePixelRatio;
     canvas.height = canvas.clientHeight * devicePixelRatio;
-    const { device, context, presentationFormat } = await initGpu(canvas);
+
+    const backendOption = options?.backend ?? "auto";
+    let backendType: BackendType;
+
+    if (backendOption === "auto") {
+      backendType = await detectBackend();
+    } else {
+      backendType = backendOption;
+    }
+
+    let backend: IRenderBackend;
+    if (backendType === "webgpu") {
+      backend = await WebGPUBackend.create(canvas, {
+        limits: options?.limits,
+      });
+    } else {
+      backend = await WebGLBackend.create(canvas, {
+        limits: options?.limits,
+      });
+    }
+
     return new Toodle(
-      device,
-      context,
-      presentationFormat,
+      backend,
       canvas,
       {
         width: canvas.clientWidth,
@@ -782,21 +726,22 @@ export class Toodle {
    */
   destroy() {
     this.#resizeObserver.disconnect();
-    this.#device.destroy();
+    this.#backend.destroy();
     this.assets.destroy();
   }
 
   /**
-   * Advanced and niche features
+   * Get the render backend instance.
+   * Cast to WebGPUBackend or WebGLBackend to access backend-specific properties.
+   *
+   * @example
+   * if (toodle.backend instanceof WebGPUBackend) {
+   *   const device = toodle.backend.device;
+   * }
    */
-  extra = {
-    /**
-     * Get the GPU device used by this Toodle instance.
-     */
-    device: (): GPUDevice => {
-      return this.#device;
-    },
-  };
+  get backend(): WebGPUBackend | WebGLBackend {
+    return this.#backend as WebGPUBackend | WebGLBackend;
+  }
 }
 
 export type StartFrameOptions = {
@@ -826,6 +771,18 @@ export type ToodleOptions = {
    */
   filter?: "nearest" | "linear";
   limits?: LimitsOptions;
+  /**
+   * The rendering backend to use.
+   *
+   * **auto**: Automatically detect the best available backend (WebGPU > WebGL).
+   *
+   * **webgpu**: Use WebGPU backend. Throws if WebGPU is not available.
+   *
+   * **webgl2**: Use WebGL 2 backend (fallback for older browsers).
+   *
+   * @default "auto"
+   */
+  backend?: BackendType | "auto";
 };
 
 export type CircleOptions = Omit<QuadOptions, "size"> & {
@@ -857,7 +814,7 @@ export type LineOptions = {
   /**
    * The shader to use for the line.
    */
-  shader?: IShader;
+  shader?: IBackendShader;
   /**
    * The layer to draw the line on.
    */
@@ -866,4 +823,15 @@ export type LineOptions = {
    * A unique identifier for the line.
    */
   key?: string;
+};
+
+export type QuadShaderOpts = {
+  /**
+   * Blend mode for alpha compositing.
+   */
+  blendMode?: BlendMode;
+  /**
+   * Which texture atlas to bind (default: "default").
+   */
+  atlasId?: string;
 };

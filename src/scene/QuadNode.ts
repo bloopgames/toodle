@@ -1,8 +1,8 @@
 import { type Mat3, mat3 } from "wgpu-matrix";
+import type { IBackendShader } from "../backends/IBackendShader";
 import type { Color } from "../coreTypes/Color";
 import type { Size } from "../coreTypes/Size";
 import type { Vec2 } from "../coreTypes/Vec2";
-import type { IShader } from "../shaders/IShader";
 import type { Toodle } from "../Toodle";
 import type { AssetManager, TextureId } from "../textures/AssetManager";
 import type { AtlasCoords, TexelRegion } from "../textures/types";
@@ -142,6 +142,10 @@ export class QuadNode extends SceneNode {
       throw new Error("QuadNode requires a size");
     }
     return size;
+  }
+
+  set size(val: Size) {
+    super.size = val;
   }
 
   /**
@@ -302,7 +306,7 @@ export type QuadOptions = NodeOptions & {
 
   assetManager?: AssetManager;
 
-  shader?: IShader;
+  shader?: IBackendShader;
   writeInstance?: (array: Float32Array, offset: number) => void;
   color?: Color;
   /**

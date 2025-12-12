@@ -1,15 +1,15 @@
+import type { IRenderBackend } from "../backends/IRenderBackend";
+import { TextureComputeShader } from "../backends/webgpu/TextureComputeShader";
+import type { WebGPUBackend } from "../backends/webgpu/WebGPUBackend";
 import type { Size } from "../coreTypes/Size";
 import type { Vec2 } from "../coreTypes/Vec2";
-import type { Limits } from "../limits";
 import { JumboQuadNode } from "../scene/JumboQuadNode";
 import { QuadNode } from "../scene/QuadNode";
 import type { SceneNode } from "../scene/SceneNode";
 import { FontPipeline } from "../text/FontPipeline";
 import { MsdfFont } from "../text/MsdfFont";
 import { TextShader } from "../text/TextShader";
-import { assert } from "../utils/mod";
 import { Bundles } from "./Bundles";
-import { TextureComputeShader } from "./TextureComputeShader";
 import type {
   AtlasBundleOpts,
   AtlasCoords,
@@ -26,49 +26,61 @@ export type FontId = string;
 export type AssetManagerOptions = {
   /** Existing Bundles instance to use for CPU-side storage. If not provided, a new one is created. */
   bundles?: Bundles;
-  /** Texture format (default: "rgba8unorm") */
-  format?: "rgba8unorm" | "rg8unorm";
+  /** Which texture atlas to use (default: "default") */
+  atlasId?: string;
 };
 
 export class AssetManager {
-  readonly textureAtlas: GPUTexture;
   readonly bundles: Bundles;
-  #device: GPUDevice;
-  #presentationFormat: GPUTextureFormat;
+  #backend: IRenderBackend;
+  #atlasId: string;
   #fonts: Map<string, TextShader> = new Map();
-  #cropComputeShader: TextureComputeShader;
-  #limits: Limits;
+  #cropComputeShader: TextureComputeShader | null = null;
   #availableIndices: Set<number> = new Set();
 
-  constructor(
-    device: GPUDevice,
-    presentationFormat: GPUTextureFormat,
-    limits: Limits,
-    options: AssetManagerOptions = {},
-  ) {
-    this.#device = device;
-    this.#presentationFormat = presentationFormat;
-    this.#limits = limits;
-    this.bundles =
-      options.bundles ?? new Bundles({ atlasSize: limits.textureSize });
-    const format = options.format ?? "rgba8unorm";
-    this.textureAtlas = device.createTexture({
-      label: "Asset Manager Atlas Texture",
-      size: [
-        this.#limits.textureSize,
-        this.#limits.textureSize,
-        this.#limits.textureArrayLayers,
-      ],
-      format,
-      usage:
-        GPUTextureUsage.TEXTURE_BINDING |
-        GPUTextureUsage.COPY_DST |
-        GPUTextureUsage.RENDER_ATTACHMENT,
-    });
-    this.#cropComputeShader = TextureComputeShader.create(device);
+  constructor(backend: IRenderBackend, options: AssetManagerOptions = {}) {
+    this.#backend = backend;
+    this.#atlasId = options.atlasId ?? "default";
+
+    const atlas = backend.getTextureAtlas(this.#atlasId);
+    if (!atlas) {
+      throw new Error(`Atlas "${this.#atlasId}" not found`);
+    }
+
+    this.bundles = options.bundles ?? new Bundles({ atlasSize: atlas.size });
+
+    // Initialize compute shader only for WebGPU backend
+    if (backend.type === "webgpu") {
+      const device = (backend as WebGPUBackend).device;
+      this.#cropComputeShader = TextureComputeShader.create(device);
+    }
+
     this.#availableIndices = new Set(
-      Array.from({ length: limits.textureArrayLayers }, (_, i) => i),
+      Array.from({ length: atlas.layers }, (_, i) => i),
     );
+  }
+
+  /**
+   * Get the atlas ID this asset manager uses.
+   */
+  get atlasId(): string {
+    return this.#atlasId;
+  }
+
+  /**
+   * Get the GPU texture atlas. For WebGPU, returns GPUTexture.
+   * @deprecated Access via backend.getTextureAtlas(atlasId).handle instead
+   */
+  get textureAtlas(): GPUTexture {
+    return this.#backend.getTextureAtlas(this.#atlasId)!.handle as GPUTexture;
+  }
+
+  /**
+   * Get the atlas dimensions
+   */
+  get atlasSize(): Size {
+    const atlas = this.#backend.getTextureAtlas(this.#atlasId);
+    return { width: atlas!.size, height: atlas!.size };
   }
 
   /**
@@ -80,9 +92,10 @@ export class AssetManager {
   getSize(id: TextureId): Size {
     const coords = this.extra.getAtlasCoords(id);
     const originalScale = coords[0].uvScale;
+    // Use atlasSize instead of textureAtlas.width/height for WebGL2 compatibility
     return {
-      width: originalScale.width * this.textureAtlas.width,
-      height: originalScale.height * this.textureAtlas.height,
+      width: originalScale.width * this.atlasSize.width,
+      height: originalScale.height * this.atlasSize.height,
     };
   }
 
@@ -95,9 +108,10 @@ export class AssetManager {
   getCroppedSize(id: TextureId): Size {
     const scaledUvs = this.extra.getAtlasCoords(id)[0].uvScaleCropped;
     if (scaledUvs) {
+      // Use atlasSize instead of textureAtlas.width/height for WebGL2 compatibility
       return {
-        width: scaledUvs.width * this.textureAtlas.width,
-        height: scaledUvs.height * this.textureAtlas.height,
+        width: scaledUvs.width * this.atlasSize.width,
+        height: scaledUvs.height * this.atlasSize.height,
       };
     }
     return this.getSize(id);
@@ -165,12 +179,20 @@ export class AssetManager {
    *
    * Note: this will consume one texture atlas per texture.
    * For more efficient loading of multiple textures, consider {@link loadBundle}
+   *
+   * @throws Error if using WebGL backend (use registerBundle instead)
    */
   async loadTexture(
     id: TextureId,
     url: URL | ImageBitmap,
     options?: Partial<TextureBundleOpts>,
   ) {
+    if (this.#backend.type !== "webgpu") {
+      throw new Error(
+        "loadTexture is only supported with WebGPU backend. Use registerBundle with prebaked atlases instead.",
+      );
+    }
+
     const bitmap =
       url instanceof ImageBitmap ? url : await getBitmapFromUrl(url);
 
@@ -180,24 +202,25 @@ export class AssetManager {
     );
     const atlasIndex = this.extra.nextAvailableAtlasIndex();
 
-    if (options?.cropTransparentPixels) {
+    if (options?.cropTransparentPixels && this.#cropComputeShader) {
       textureWrapper =
         await this.#cropComputeShader.processTexture(textureWrapper);
     }
 
     this.#copyTextureToAtlas(textureWrapper.texture, atlasIndex);
 
+    const { width: atlasWidth, height: atlasHeight } = this.atlasSize;
     const coords: AtlasCoords = {
       uvOffset: { x: 0, y: 0 },
       cropOffset: textureWrapper.cropOffset,
       uvScale: {
-        width: textureWrapper.texture.width / this.textureAtlas.width,
-        height: textureWrapper.texture.height / this.textureAtlas.height,
+        width: textureWrapper.texture.width / atlasWidth,
+        height: textureWrapper.texture.height / atlasHeight,
       },
       originalSize: textureWrapper.originalSize,
       uvScaleCropped: {
-        width: textureWrapper.texture.width / this.textureAtlas.width,
-        height: textureWrapper.texture.height / this.textureAtlas.height,
+        width: textureWrapper.texture.width / atlasWidth,
+        height: textureWrapper.texture.height / atlasHeight,
       },
       atlasIndex,
     };
@@ -292,23 +315,36 @@ export class AssetManager {
    * @param id - The id of the font to load
    * @param url - The url of the font to load
    * @param fallbackCharacter - The character to use as a fallback if the font does not contain a character to be rendererd
+   *
+   * @throws Error if using WebGL backend (fonts not supported in WebGL mode)
    */
   async loadFont(id: string, url: URL, fallbackCharacter = "_") {
+    if (this.#backend.type !== "webgpu") {
+      throw new Error(
+        "loadFont is only supported with WebGPU backend. Text rendering is not available in WebGL mode.",
+      );
+    }
+
+    const webgpuBackend = this.#backend as WebGPUBackend;
+    const device = webgpuBackend.device;
+    const presentationFormat = webgpuBackend.presentationFormat;
+    const limits = this.#backend.limits;
+
     const font = await MsdfFont.create(id, url);
     font.fallbackCharacter = fallbackCharacter;
     const fontPipeline = await FontPipeline.create(
-      this.#device,
+      device,
       font,
-      this.#presentationFormat,
-      this.#limits.maxTextLength,
+      presentationFormat,
+      limits.maxTextLength,
     );
 
     const textShader = new TextShader(
-      this.#device,
+      this.#backend as WebGPUBackend,
       fontPipeline,
       font,
-      this.#presentationFormat,
-      this.#limits.instanceCount,
+      presentationFormat,
+      limits.instanceCount,
     );
     this.#fonts.set(id, textShader);
     return id;
@@ -353,7 +389,8 @@ export class AssetManager {
    * @private
    */
   #createTextureFromImageBitmap(bitmap: ImageBitmap, name: string): GPUTexture {
-    const texture = this.#device.createTexture({
+    const device = (this.#backend as WebGPUBackend).device;
+    const texture = device.createTexture({
       label: `${name} Intermediary Texture`,
       size: [bitmap.width, bitmap.height],
       format: "rgba8unorm",
@@ -364,7 +401,7 @@ export class AssetManager {
         GPUTextureUsage.RENDER_ATTACHMENT,
     });
 
-    this.#device.queue.copyExternalImageToTexture(
+    device.queue.copyExternalImageToTexture(
       {
         source: bitmap,
       },
@@ -380,20 +417,27 @@ export class AssetManager {
     bundleId: BundleId,
     opts: TextureBundleOpts,
   ) {
+    if (this.#backend.type !== "webgpu") {
+      throw new Error(
+        "Dynamic texture bundle registration is only supported with WebGPU backend. Use prebaked atlases instead.",
+      );
+    }
+
+    const device = (this.#backend as WebGPUBackend).device;
     const images = new Map<string, TextureWithMetadata>();
 
-    let networkLoadTime = 0;
+    let _networkLoadTime = 0;
     await Promise.all(
       Object.entries(opts.textures).map(async ([id, url]) => {
         const now = performance.now();
         const bitmap = await getBitmapFromUrl(url);
-        networkLoadTime += performance.now() - now;
+        _networkLoadTime += performance.now() - now;
         let textureWrapper: TextureWithMetadata = this.#wrapBitmapToTexture(
           bitmap,
           id,
         );
 
-        if (opts.cropTransparentPixels) {
+        if (opts.cropTransparentPixels && this.#cropComputeShader) {
           textureWrapper =
             await this.#cropComputeShader.processTexture(textureWrapper);
         }
@@ -403,8 +447,8 @@ export class AssetManager {
 
     const atlases = await packBitmapsToAtlas(
       images,
-      this.#limits.textureSize,
-      this.#device,
+      this.#backend.limits.textureSize,
+      device,
     );
 
     this.bundles.registerDynamicBundle(bundleId, atlases);
@@ -467,6 +511,8 @@ export class AssetManager {
      * @returns Usage stats for texture atlases
      */
     getAtlasUsage: () => {
+      const atlas = this.#backend.getTextureAtlas(this.#atlasId);
+      const totalLayers = atlas?.layers ?? 0;
       return {
         /**
          * The number of texture atlases that are currently unused
@@ -476,11 +522,11 @@ export class AssetManager {
         /**
          * The number of texture atlases that are currently in use.
          */
-        used: this.#limits.textureArrayLayers - this.#availableIndices.size,
+        used: totalLayers - this.#availableIndices.size,
         /**
          * The total number of texture atlases that can be loaded.
          */
-        total: this.#limits.textureArrayLayers,
+        total: totalLayers,
       };
     },
 
@@ -489,7 +535,9 @@ export class AssetManager {
      *
      */
     nextAvailableAtlasIndex: () => {
-      for (let i = 0; i < this.#limits.textureArrayLayers; i++) {
+      const atlas = this.#backend.getTextureAtlas(this.#atlasId);
+      const totalLayers = atlas?.layers ?? 0;
+      for (let i = 0; i < totalLayers; i++) {
         if (this.#availableIndices.has(i)) {
           this.#availableIndices.delete(i);
           return i;
@@ -507,34 +555,8 @@ export class AssetManager {
     loadAtlas: async (atlas: CpuTextureAtlas) => {
       const atlasIndex = this.extra.nextAvailableAtlasIndex();
 
-      if (atlas.rg8Bytes) {
-        const { width: w, height: h } = {
-          width: this.textureAtlas.width,
-          height: this.textureAtlas.height,
-        };
-
-        // WebGPU requires 256-byte bytesPerRow
-        const rowBytes = w * 2;
-        assert(rowBytes % 256 === 0, "rowBytes must be a multiple of 256");
-
-        this.#device.queue.writeTexture(
-          { texture: this.textureAtlas, origin: { x: 0, y: 0, z: atlasIndex } },
-          atlas.rg8Bytes,
-          { bytesPerRow: rowBytes, rowsPerImage: h },
-          { width: w, height: h, depthOrArrayLayers: 1 },
-        );
-      } else {
-        this.#device.queue.copyExternalImageToTexture(
-          {
-            source: atlas.texture,
-          },
-          {
-            texture: this.textureAtlas,
-            origin: [0, 0, atlasIndex],
-          },
-          [atlas.texture.width, atlas.texture.height, 1],
-        );
-      }
+      // Delegate to backend for actual GPU upload
+      await this.#backend.uploadAtlas(atlas, atlasIndex, this.#atlasId);
 
       for (const [id, region] of atlas.textureRegions) {
         this.bundles.addTextureEntry(id, { ...region, atlasIndex });
@@ -569,7 +591,8 @@ export class AssetManager {
   }
 
   #copyTextureToAtlas(texture: GPUTexture, atlasIndex: number) {
-    const copyEncoder: GPUCommandEncoder = this.#device.createCommandEncoder();
+    const device = (this.#backend as WebGPUBackend).device;
+    const copyEncoder: GPUCommandEncoder = device.createCommandEncoder();
     copyEncoder.copyTextureToTexture(
       {
         texture: texture,
@@ -584,12 +607,13 @@ export class AssetManager {
       [texture.width, texture.height, 1],
     );
 
-    this.#device.queue.submit([copyEncoder.finish()]);
+    device.queue.submit([copyEncoder.finish()]);
   }
+
   /**
    * Destroy the texture atlas. This should free up ~4gb of gpu memory (and make all draw calls fail)
    */
   destroy() {
-    this.textureAtlas.destroy();
+    this.#backend.destroy();
   }
 }

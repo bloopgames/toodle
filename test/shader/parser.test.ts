@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
-import { combineShaderCode } from "../../src/shaders/parser";
-import helloWgsl from "../../src/shaders/wgsl/hello.wgsl";
+import { combineShaderCode } from "../../src/backends/webgpu/parser";
+import helloWgsl from "../../src/backends/webgpu/wgsl/hello.wgsl";
 import { getGpuPipelineDescriptor } from "../../src/utils/boilerplate";
 describe("combineShaderCode", () => {
   it("should combine shader code", () => {
