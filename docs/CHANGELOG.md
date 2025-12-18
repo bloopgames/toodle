@@ -4,6 +4,11 @@ A detailed list of all notable changes for every released version.
 
 [All releases](https://www.npmjs.com/package/@bloopjs/toodle)
 
+## [0.1.3](https://github.com/bloopgames/toodle/releases/tag/0.1.3)
+
+- Make `TextNode` backend-agnostic, you can now use `toodle.Text` with both WebGPU and WebGL2 backends to measure text positioning. Rendering with webgl2 will throw.
+- **Breaking** `import {TextNode} from @bloopjs/toodle` instead of `Text.TextNode`
+
 ## [0.1.2](https://github.com/bloopgames/toodle/releases/tag/0.1.2)
 
 - **Breaking**: Remove `fflate` dependency and `loadZip` utility function. If you were using `loadZip`, you can use the browser's native `DecompressionStream` API or install `fflate` directly in your project.
