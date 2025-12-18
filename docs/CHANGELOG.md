@@ -7,7 +7,7 @@ A detailed list of all notable changes for every released version.
 ## [0.1.3](https://github.com/bloopgames/toodle/releases/tag/0.1.3)
 
 - Make `TextNode` backend-agnostic, you can now use `toodle.Text` with both WebGPU and WebGL2 backends to measure text positioning. Rendering with webgl2 will throw.
-- **Breaking** `import {TextNode} from @bloopjs/toodle` instead of `Text.TextNode`
+- **Breaking** `import {TextNode, TextNodeOptions} from @bloopjs/toodle` instead of referencing via `Text.TextNode`
 
 ## [0.1.2](https://github.com/bloopgames/toodle/releases/tag/0.1.2)
 
