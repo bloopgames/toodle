@@ -41,7 +41,7 @@ export class MsdfFont {
   constructor(
     public id: string,
     public json: MsdfFontJson,
-    public imageBitmap: ImageBitmap | null,
+    public imageBitmap: ImageBitmap,
   ) {
     const charArray = Object.values(json.chars);
     this.charCount = charArray.length;
@@ -132,21 +132,6 @@ export class MsdfFont {
     const bitmap = await createImageBitmap(await textureResponse.blob());
 
     return new MsdfFont(id, json, bitmap);
-  }
-
-  /**
-   * Create an MsdfFont for measurement only (no rendering).
-   * This only loads the JSON metadata, skipping the PNG texture.
-   * Useful for WebGL backend where text rendering is not supported
-   * but text measurement is still needed.
-   */
-  static async createForMeasurement(
-    id: string,
-    fontJsonUrl: URL,
-  ): Promise<MsdfFont> {
-    const response = await fetch(fontJsonUrl);
-    const json = (await response.json()) as MsdfFontJson;
-    return new MsdfFont(id, json, null);
   }
 
   set fallbackCharacter(character: string) {

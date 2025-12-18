@@ -319,21 +319,20 @@ export class AssetManager {
    * @param fallbackCharacter - The character to use as a fallback if the font does not contain a character to be rendered
    *
    * @remarks
-   * On WebGPU backend, loads the full font (JSON + PNG) for rendering.
-   * On WebGL backend, loads only the JSON for text measurement. Attempting to
+   * On WebGPU backend, loads the full font for rendering.
+   * On WebGL backend, loads the font for text measurement only. Attempting to
    * render text on WebGL will throw an error.
    */
   async loadFont(id: string, url: URL, fallbackCharacter = "_") {
     const limits = this.#backend.limits;
+    const font = await MsdfFont.create(id, url);
+    font.fallbackCharacter = fallbackCharacter;
 
     if (this.#backend.type === "webgpu") {
-      // Full load: JSON + PNG + FontPipeline + WebGPUTextShader
       const webgpuBackend = this.#backend as WebGPUBackend;
       const device = webgpuBackend.device;
       const presentationFormat = webgpuBackend.presentationFormat;
 
-      const font = await MsdfFont.create(id, url);
-      font.fallbackCharacter = fallbackCharacter;
       const fontPipeline = await FontPipeline.create(
         device,
         font,
@@ -350,9 +349,7 @@ export class AssetManager {
       );
       this.#fonts.set(id, textShader);
     } else {
-      // Measurement-only: JSON only + WebGLTextShader
-      const font = await MsdfFont.createForMeasurement(id, url);
-      font.fallbackCharacter = fallbackCharacter;
+      // WebGL: font loaded for measurement, but rendering will throw
       const textShader = new WebGLTextShader(font, limits.maxTextLength);
       this.#fonts.set(id, textShader);
     }

@@ -18,12 +18,6 @@ export class FontPipeline {
     colorFormat: GPUTextureFormat,
     maxCharCount: number,
   ): Promise<FontPipeline> {
-    if (!font.imageBitmap) {
-      throw new Error(
-        "FontPipeline requires a font with imageBitmap. Use MsdfFont.create() instead of MsdfFont.createForMeasurement().",
-      );
-    }
-
     const pipeline = await pipelinePromise(device, colorFormat, font.name);
     const texture = device.createTexture({
       label: `MSDF font ${font.name}`,
