@@ -13,6 +13,7 @@ export type {
   BlendOperation,
   IRenderBackend,
 } from "./IRenderBackend";
+export type { ITextShader } from "./ITextShader";
 export type {
   ITextureAtlas,
   TextureAtlasFormat,

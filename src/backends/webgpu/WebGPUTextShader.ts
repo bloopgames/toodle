@@ -1,13 +1,17 @@
 import { WgslReflect } from "wgsl_reflect";
-import type { IBackendShader } from "../backends/IBackendShader";
-import type { WebGPUBackend } from "../backends/webgpu/WebGPUBackend";
-import type { EngineUniform } from "../coreTypes/EngineUniform";
-import type { SceneNode } from "../scene/SceneNode";
+import type { EngineUniform } from "../../coreTypes/EngineUniform";
+import type { SceneNode } from "../../scene/SceneNode";
+import { DEFAULT_FONT_SIZE, TextNode } from "../../scene/TextNode";
+import type { MsdfFont } from "../../text/MsdfFont";
+import {
+  findLargestFontSize,
+  measureText,
+  shapeText,
+} from "../../text/shaping";
+import type { ITextShader } from "../ITextShader";
 import type { FontPipeline } from "./FontPipeline";
-import type { MsdfFont } from "./MsdfFont";
-import { findLargestFontSize, measureText, shapeText } from "./shaping";
-import { DEFAULT_FONT_SIZE, TextNode } from "./TextNode";
-import msdfShader from "./text.wgsl";
+import type { WebGPUBackend } from "./WebGPUBackend";
+import msdfShader from "./wgsl/text.wgsl";
 
 const deets = new WgslReflect(msdfShader);
 const struct = deets.structs.find((s) => s.name === "TextBlockDescriptor");
@@ -16,7 +20,7 @@ if (!struct) {
 }
 const textDescriptorInstanceSize = struct.size;
 
-export class TextShader implements IBackendShader {
+export class WebGPUTextShader implements ITextShader {
   readonly label = "text";
 
   #backend: WebGPUBackend;
@@ -130,7 +134,7 @@ export class TextShader implements IBackendShader {
       if (!(node instanceof TextNode)) {
         console.error(node);
         throw new Error(
-          `Tried to use TextShader on something that isn't a TextNode: ${node}`,
+          `Tried to use WebGPUTextShader on something that isn't a TextNode: ${node}`,
         );
       }
       const text = node.text;

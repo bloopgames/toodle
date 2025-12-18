@@ -1,14 +1,16 @@
 import type { IRenderBackend } from "../backends/IRenderBackend";
+import type { ITextShader } from "../backends/ITextShader";
+import { WebGLTextShader } from "../backends/webgl2/WebGLTextShader";
+import { FontPipeline } from "../backends/webgpu/FontPipeline";
 import { TextureComputeShader } from "../backends/webgpu/TextureComputeShader";
 import type { WebGPUBackend } from "../backends/webgpu/WebGPUBackend";
+import { WebGPUTextShader } from "../backends/webgpu/WebGPUTextShader";
 import type { Size } from "../coreTypes/Size";
 import type { Vec2 } from "../coreTypes/Vec2";
 import { JumboQuadNode } from "../scene/JumboQuadNode";
 import { QuadNode } from "../scene/QuadNode";
 import type { SceneNode } from "../scene/SceneNode";
-import { FontPipeline } from "../text/FontPipeline";
 import { MsdfFont } from "../text/MsdfFont";
-import { TextShader } from "../text/TextShader";
 import { Bundles } from "./Bundles";
 import type {
   AtlasBundleOpts,
@@ -34,7 +36,7 @@ export class AssetManager {
   readonly bundles: Bundles;
   #backend: IRenderBackend;
   #atlasId: string;
-  #fonts: Map<string, TextShader> = new Map();
+  #fonts: Map<string, ITextShader> = new Map();
   #cropComputeShader: TextureComputeShader | null = null;
   #availableIndices: Set<number> = new Set();
 
@@ -310,43 +312,51 @@ export class AssetManager {
   }
 
   /**
-   * Load a font to the gpu
+   * Load a font for text rendering (WebGPU) or measurement only (WebGL).
    *
    * @param id - The id of the font to load
-   * @param url - The url of the font to load
-   * @param fallbackCharacter - The character to use as a fallback if the font does not contain a character to be rendererd
+   * @param url - The url of the font JSON to load
+   * @param fallbackCharacter - The character to use as a fallback if the font does not contain a character to be rendered
    *
-   * @throws Error if using WebGL backend (fonts not supported in WebGL mode)
+   * @remarks
+   * On WebGPU backend, loads the full font (JSON + PNG) for rendering.
+   * On WebGL backend, loads only the JSON for text measurement. Attempting to
+   * render text on WebGL will throw an error.
    */
   async loadFont(id: string, url: URL, fallbackCharacter = "_") {
-    if (this.#backend.type !== "webgpu") {
-      throw new Error(
-        "loadFont is only supported with WebGPU backend. Text rendering is not available in WebGL mode.",
-      );
-    }
-
-    const webgpuBackend = this.#backend as WebGPUBackend;
-    const device = webgpuBackend.device;
-    const presentationFormat = webgpuBackend.presentationFormat;
     const limits = this.#backend.limits;
 
-    const font = await MsdfFont.create(id, url);
-    font.fallbackCharacter = fallbackCharacter;
-    const fontPipeline = await FontPipeline.create(
-      device,
-      font,
-      presentationFormat,
-      limits.maxTextLength,
-    );
+    if (this.#backend.type === "webgpu") {
+      // Full load: JSON + PNG + FontPipeline + WebGPUTextShader
+      const webgpuBackend = this.#backend as WebGPUBackend;
+      const device = webgpuBackend.device;
+      const presentationFormat = webgpuBackend.presentationFormat;
 
-    const textShader = new TextShader(
-      this.#backend as WebGPUBackend,
-      fontPipeline,
-      font,
-      presentationFormat,
-      limits.instanceCount,
-    );
-    this.#fonts.set(id, textShader);
+      const font = await MsdfFont.create(id, url);
+      font.fallbackCharacter = fallbackCharacter;
+      const fontPipeline = await FontPipeline.create(
+        device,
+        font,
+        presentationFormat,
+        limits.maxTextLength,
+      );
+
+      const textShader = new WebGPUTextShader(
+        webgpuBackend,
+        fontPipeline,
+        font,
+        presentationFormat,
+        limits.instanceCount,
+      );
+      this.#fonts.set(id, textShader);
+    } else {
+      // Measurement-only: JSON only + WebGLTextShader
+      const font = await MsdfFont.createForMeasurement(id, url);
+      font.fallbackCharacter = fallbackCharacter;
+      const textShader = new WebGLTextShader(font, limits.maxTextLength);
+      this.#fonts.set(id, textShader);
+    }
+
     return id;
   }
 

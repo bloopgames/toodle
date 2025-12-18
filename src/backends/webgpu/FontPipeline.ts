@@ -1,5 +1,5 @@
-import type { MsdfFont } from "./MsdfFont";
-import msdfShader from "./text.wgsl";
+import type { MsdfFont } from "../../text/MsdfFont";
+import msdfShader from "./wgsl/text.wgsl";
 
 /**
  * A webgpu pipeline for rendering blocks of text with a given font.
@@ -18,6 +18,12 @@ export class FontPipeline {
     colorFormat: GPUTextureFormat,
     maxCharCount: number,
   ): Promise<FontPipeline> {
+    if (!font.imageBitmap) {
+      throw new Error(
+        "FontPipeline requires a font with imageBitmap. Use MsdfFont.create() instead of MsdfFont.createForMeasurement().",
+      );
+    }
+
     const pipeline = await pipelinePromise(device, colorFormat, font.name);
     const texture = device.createTexture({
       label: `MSDF font ${font.name}`,

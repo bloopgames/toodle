@@ -1,9 +1,9 @@
+import type { ITextShader } from "../backends/ITextShader";
 import type { Color } from "../coreTypes/Color";
-import { type NodeOptions, SceneNode } from "../scene/SceneNode";
-import type { MsdfFont } from "./MsdfFont";
-import { measureText } from "./shaping";
-import type { TextFormatting } from "./TextFormatting";
-import type { TextShader } from "./TextShader";
+import type { MsdfFont } from "../text/MsdfFont";
+import { measureText } from "../text/shaping";
+import type { TextFormatting } from "../text/TextFormatting";
+import { type NodeOptions, SceneNode } from "./SceneNode";
 
 export const DEFAULT_FONT_SIZE = 14;
 
@@ -12,7 +12,7 @@ export class TextNode extends SceneNode {
   #formatting: TextFormatting;
   #font: MsdfFont;
 
-  constructor(shader: TextShader, text: string, opts: TextOptions = {}) {
+  constructor(shader: ITextShader, text: string, opts: TextOptions = {}) {
     const { width, height } = measureText(shader.font, text, opts.wordWrap);
 
     if (text.length > shader.maxCharCount) {

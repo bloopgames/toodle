@@ -21,8 +21,8 @@ import { Camera } from "./scene/Camera";
 import { JumboQuadNode, type JumboQuadOptions } from "./scene/JumboQuadNode";
 import { QuadNode, type QuadOptions } from "./scene/QuadNode";
 import { type NodeOptions, SceneNode } from "./scene/SceneNode";
+import { TextNode, type TextOptions } from "./scene/TextNode";
 import type { Resolution } from "./screen/resolution";
-import { TextNode, type TextOptions } from "./text/TextNode";
 import { AssetManager, type TextureId } from "./textures/AssetManager";
 import { Pool } from "./utils/mod";
 
