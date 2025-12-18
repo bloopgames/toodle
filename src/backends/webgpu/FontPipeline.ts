@@ -1,5 +1,5 @@
-import type { MsdfFont } from "./MsdfFont";
-import msdfShader from "./text.wgsl";
+import type { MsdfFont } from "../../text/MsdfFont";
+import msdfShader from "./wgsl/text.wgsl";
 
 /**
  * A webgpu pipeline for rendering blocks of text with a given font.

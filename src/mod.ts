@@ -4,7 +4,7 @@ export type * from "./coreTypes/mod";
 
 export type * from "./scene/QuadNode";
 export type * from "./scene/SceneNode";
-export type * from "./text/TextNode";
+export type * from "./scene/TextNode";
 export type * from "./backends/IBackendShader";
 export type * from "./backends/IRenderBackend";
 

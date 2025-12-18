@@ -1,5 +1,5 @@
 import { Toodle } from "../src/Toodle";
-import type { TextNode } from "../src/text/TextNode";
+import type { TextNode } from "../src/scene/TextNode";
 import { createCanvas, getRandomWords } from "./util";
 
 const words = await getRandomWords();
