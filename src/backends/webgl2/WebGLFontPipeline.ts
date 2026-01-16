@@ -161,7 +161,7 @@ export class WebGLFontPipeline {
       gl.FLOAT,
       data,
     );
-    gl.bindTexture(gl.TEXTURE_2D, null);
+    // Note: don't unbind here - the texture needs to stay bound for rendering
   }
 
   destroy(): void {

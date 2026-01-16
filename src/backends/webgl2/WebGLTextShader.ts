@@ -27,6 +27,7 @@ export class WebGLTextShader implements ITextShader {
   #backend: WebGLBackend;
   #pipeline: WebGLFontPipeline;
   #program: WebGLProgram;
+  #vao: WebGLVertexArrayObject;
   #cpuTextBuffer: Float32Array;
   #cachedUniform: EngineUniform | null = null;
 
@@ -80,6 +81,11 @@ export class WebGLTextShader implements ITextShader {
     this.#uTextBuffer = gl.getUniformLocation(program, "u_textBuffer");
     this.#uFontTexture = gl.getUniformLocation(program, "u_fontTexture");
 
+    // Create VAO (required for WebGL2 draw calls, even without vertex attributes)
+    const vao = gl.createVertexArray();
+    assert(vao, "Failed to create WebGL VAO");
+    this.#vao = vao;
+
     // Allocate CPU buffer for text shaping
     this.#cpuTextBuffer = new Float32Array(this.maxCharCount * 4);
 
@@ -102,6 +108,7 @@ export class WebGLTextShader implements ITextShader {
     }
 
     gl.useProgram(this.#program);
+    gl.bindVertexArray(this.#vao);
 
     // Set view projection matrix (extract 9 floats from padded mat3)
     if (this.#uViewProjection) {
@@ -230,6 +237,7 @@ export class WebGLTextShader implements ITextShader {
       );
     }
 
+    gl.bindVertexArray(null);
     return nodes.length;
   }
 
@@ -261,6 +269,7 @@ export class WebGLTextShader implements ITextShader {
   destroy(): void {
     const gl = this.#backend.gl;
     gl.deleteProgram(this.#program);
+    gl.deleteVertexArray(this.#vao);
     this.#pipeline.destroy();
   }
 }
