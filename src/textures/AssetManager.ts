@@ -21,7 +21,11 @@ import type {
   TextureBundleOpts,
   TextureWithMetadata,
 } from "./types";
-import { getBitmapFromUrl, packBitmapsToAtlas } from "./util";
+import {
+  getBitmapFromUrl,
+  packBitmapsToAtlas,
+  packBitmapsToAtlasCPU,
+} from "./util";
 
 export type TextureId = string;
 export type BundleId = string;
@@ -432,41 +436,58 @@ export class AssetManager {
     bundleId: BundleId,
     opts: TextureBundleOpts,
   ) {
-    if (this.#backend.type !== "webgpu") {
-      throw new Error(
-        "Dynamic texture bundle registration is only supported with WebGPU backend. Use prebaked atlases instead.",
+    if (this.#backend.type === "webgpu") {
+      // WebGPU path: supports optional crop compute shader
+      const device = (this.#backend as WebGPUBackend).device;
+      const images = new Map<string, TextureWithMetadata>();
+
+      await Promise.all(
+        Object.entries(opts.textures).map(async ([id, url]) => {
+          const bitmap = await getBitmapFromUrl(url);
+          let textureWrapper: TextureWithMetadata = this.#wrapBitmapToTexture(
+            bitmap,
+            id,
+          );
+
+          if (opts.cropTransparentPixels && this.#cropComputeShader) {
+            textureWrapper =
+              await this.#cropComputeShader.processTexture(textureWrapper);
+          }
+          images.set(id, textureWrapper);
+        }),
       );
-    }
 
-    const device = (this.#backend as WebGPUBackend).device;
-    const images = new Map<string, TextureWithMetadata>();
+      const atlases = await packBitmapsToAtlas(
+        images,
+        this.#backend.limits.textureSize,
+        device,
+      );
 
-    let _networkLoadTime = 0;
-    await Promise.all(
-      Object.entries(opts.textures).map(async ([id, url]) => {
-        const now = performance.now();
-        const bitmap = await getBitmapFromUrl(url);
-        _networkLoadTime += performance.now() - now;
-        let textureWrapper: TextureWithMetadata = this.#wrapBitmapToTexture(
-          bitmap,
-          id,
+      this.bundles.registerDynamicBundle(bundleId, atlases);
+    } else {
+      // WebGL2 path: CPU-only packing without cropping support
+      if (opts.cropTransparentPixels) {
+        console.warn(
+          "cropTransparentPixels is not supported on WebGL2 backend and will be ignored.",
         );
+      }
 
-        if (opts.cropTransparentPixels && this.#cropComputeShader) {
-          textureWrapper =
-            await this.#cropComputeShader.processTexture(textureWrapper);
-        }
-        images.set(id, textureWrapper);
-      }),
-    );
+      const images = new Map<string, { bitmap: ImageBitmap; id: string }>();
 
-    const atlases = await packBitmapsToAtlas(
-      images,
-      this.#backend.limits.textureSize,
-      device,
-    );
+      await Promise.all(
+        Object.entries(opts.textures).map(async ([id, url]) => {
+          const bitmap = await getBitmapFromUrl(url);
+          images.set(id, { bitmap, id });
+        }),
+      );
 
-    this.bundles.registerDynamicBundle(bundleId, atlases);
+      const atlases = await packBitmapsToAtlasCPU(
+        images,
+        this.#backend.limits.textureSize,
+      );
+
+      this.bundles.registerDynamicBundle(bundleId, atlases);
+    }
   }
 
   async #registerBundleFromAtlases(bundleId: BundleId, opts: AtlasBundleOpts) {

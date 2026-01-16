@@ -258,3 +258,143 @@ type Rectangle = {
   width: number;
   height: number;
 };
+
+/**
+ * CPU-only version of packBitmapsToAtlas for WebGL2 backend.
+ * Uses OffscreenCanvas to composite packed bitmaps instead of GPU textures.
+ * Does not support transparent pixel cropping.
+ */
+export async function packBitmapsToAtlasCPU(
+  images: Map<string, { bitmap: ImageBitmap; id: string }>,
+  textureSize: number,
+): Promise<CpuTextureAtlas[]> {
+  const cpuTextureAtlases: CpuTextureAtlas[] = [];
+  const packed: PackedTexture[] = [];
+  const spaces: Rectangle[] = [
+    { x: 0, y: 0, width: textureSize, height: textureSize },
+  ];
+
+  let atlasRegionMap = new Map<string, TextureRegion>();
+
+  for (const [id, { bitmap }] of images) {
+    // Find best fitting space using guillotine method
+    let bestSpace = -1;
+    let bestScore = Number.POSITIVE_INFINITY;
+
+    for (let i = 0; i < spaces.length; i++) {
+      const space = spaces[i];
+      if (bitmap.width <= space.width && bitmap.height <= space.height) {
+        // Score based on how well it fits (smaller score is better)
+        const score = Math.abs(
+          space.width * space.height - bitmap.width * bitmap.height,
+        );
+        if (score < bestScore) {
+          bestScore = score;
+          bestSpace = i;
+        }
+      }
+    }
+
+    if (bestSpace === -1) {
+      // Current atlas is full, finalize it and start a new one
+      const tex = createAtlasBitmapFromPacked(packed, textureSize);
+      cpuTextureAtlases.push({
+        texture: tex,
+        textureRegions: atlasRegionMap,
+        width: tex.width,
+        height: tex.height,
+      });
+
+      atlasRegionMap = new Map<string, TextureRegion>();
+      packed.length = 0;
+
+      spaces.length = 0;
+      spaces.push({
+        x: 0,
+        y: 0,
+        width: textureSize,
+        height: textureSize,
+      });
+      bestSpace = 0;
+    }
+
+    const space = spaces[bestSpace];
+
+    // Pack the image
+    packed.push({
+      texture: bitmap,
+      x: space.x,
+      y: space.y,
+      width: bitmap.width,
+      height: bitmap.height,
+    });
+
+    // Split remaining space into two new spaces
+    spaces.splice(bestSpace, 1);
+
+    if (space.width - bitmap.width > 0) {
+      spaces.push({
+        x: space.x + bitmap.width,
+        y: space.y,
+        width: space.width - bitmap.width,
+        height: bitmap.height,
+      });
+    }
+
+    if (space.height - bitmap.height > 0) {
+      spaces.push({
+        x: space.x,
+        y: space.y + bitmap.height,
+        width: space.width,
+        height: space.height - bitmap.height,
+      });
+    }
+
+    // Create atlas coords (no cropping for CPU path)
+    const uvScale = {
+      width: bitmap.width / textureSize,
+      height: bitmap.height / textureSize,
+    };
+    atlasRegionMap.set(id, {
+      uvOffset: {
+        x: space.x / textureSize,
+        y: space.y / textureSize,
+      },
+      uvScale,
+      uvScaleCropped: uvScale,
+      cropOffset: { x: 0, y: 0 },
+      originalSize: { width: bitmap.width, height: bitmap.height },
+    });
+  }
+
+  // Finalize the last atlas
+  const tex = createAtlasBitmapFromPacked(packed, textureSize);
+  cpuTextureAtlases.push({
+    texture: tex,
+    textureRegions: atlasRegionMap,
+    width: tex.width,
+    height: tex.height,
+  });
+
+  return cpuTextureAtlases;
+}
+
+/**
+ * Composites packed textures onto an OffscreenCanvas and returns an ImageBitmap.
+ */
+function createAtlasBitmapFromPacked(
+  packed: PackedTexture[],
+  atlasSize: number,
+): ImageBitmap {
+  const canvas = new OffscreenCanvas(atlasSize, atlasSize);
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("Failed to get 2d context from OffscreenCanvas");
+  }
+
+  for (const texture of packed) {
+    ctx.drawImage(texture.texture, texture.x, texture.y);
+  }
+
+  return canvas.transferToImageBitmap();
+}
