@@ -1,5 +1,7 @@
 import type { IRenderBackend } from "../backends/IRenderBackend";
 import type { ITextShader } from "../backends/ITextShader";
+import type { WebGLBackend } from "../backends/webgl2/WebGLBackend";
+import { WebGLFontPipeline } from "../backends/webgl2/WebGLFontPipeline";
 import { WebGLTextShader } from "../backends/webgl2/WebGLTextShader";
 import { FontPipeline } from "../backends/webgpu/FontPipeline";
 import { TextureComputeShader } from "../backends/webgpu/TextureComputeShader";
@@ -349,8 +351,14 @@ export class AssetManager {
       );
       this.#fonts.set(id, textShader);
     } else {
-      // WebGL: font loaded for measurement, but rendering will throw
-      const textShader = new WebGLTextShader(font, limits.maxTextLength);
+      // WebGL: create font pipeline and text shader for rendering
+      const webglBackend = this.#backend as WebGLBackend;
+      const fontPipeline = WebGLFontPipeline.create(
+        webglBackend.gl,
+        font,
+        limits.maxTextLength,
+      );
+      const textShader = new WebGLTextShader(webglBackend, fontPipeline);
       this.#fonts.set(id, textShader);
     }
 
