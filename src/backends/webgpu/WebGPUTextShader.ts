@@ -22,6 +22,7 @@ const textDescriptorInstanceSize = struct.size;
 
 export class WebGPUTextShader implements ITextShader {
   readonly label = "text";
+  readonly code: string = msdfShader;
 
   #backend: WebGPUBackend;
   #pipeline: GPURenderPipeline;

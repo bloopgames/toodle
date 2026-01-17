@@ -74,6 +74,7 @@ export default defineConfig({
           { text: "Default shader", link: "/examples/shader-default" },
           { text: "Color Flash", link: "/examples/shader-color-flash" },
           { text: "Fill", link: "/examples/shader-fill" },
+          { text: "Tile", link: "/examples/shader-tile" },
           { text: "Post Process", link: "/examples/post-process" }
         ],
       },

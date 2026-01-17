@@ -21,6 +21,7 @@ import type { WebGLFontPipeline } from "./WebGLFontPipeline";
  */
 export class WebGLTextShader implements ITextShader {
   readonly label = "text";
+  readonly code: string = fragmentShader;
   readonly font: MsdfFont;
   readonly maxCharCount: number;
 

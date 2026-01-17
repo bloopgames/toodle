@@ -16,6 +16,7 @@ const INSTANCE_BYTES = INSTANCE_FLOATS * Float32Array.BYTES_PER_ELEMENT;
  */
 export class WebGLQuadShader implements IBackendShader {
   readonly label: string;
+  readonly code: string;
 
   #backend: WebGLBackend;
   #atlas: ITextureAtlas;
@@ -45,6 +46,7 @@ export class WebGLQuadShader implements IBackendShader {
 
     this.#atlas = atlas;
     this.label = label;
+    this.code = userFragmentShader ?? fragmentShader;
     this.#backend = backend;
     this.#instanceCount = instanceCount;
 

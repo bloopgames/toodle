@@ -359,6 +359,7 @@ describe("SceneNode", () => {
       const hello: RenderComponent = {
         shader: {
           label: "test",
+          code: "",
           startFrame: () => {},
           processBatch: () => 0,
           endFrame: () => {},

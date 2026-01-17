@@ -28,6 +28,9 @@ export interface IBackendShader {
   /** Debug label for the shader */
   readonly label: string;
 
+  /** The final compiled shader code (for debugging) */
+  readonly code: string;
+
   /**
    * Prepare for a new frame.
    * Called once per frame before any processBatch calls.
