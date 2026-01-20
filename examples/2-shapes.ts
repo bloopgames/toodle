@@ -13,16 +13,18 @@ const rect = toodle.shapes.Rect({
 });
 
 const shader = toodle.QuadShader("additive blend", 1, "", {
-  color: {
-    srcFactor: "one",
-    dstFactor: "one",
-    operation: "add",
-  },
-  alpha: {
-    srcFactor: "one",
-    dstFactor: "one",
-    operation: "add",
-  },
+  blendMode: {
+    color: {
+      srcFactor: "one",
+      dstFactor: "one",
+      operation: "add",
+    },
+    alpha: {
+      srcFactor: "one",
+      dstFactor: "one",
+      operation: "add",
+    },
+  }
 });
 
 const rect2 = toodle.shapes.Rect({
@@ -37,7 +39,7 @@ rect2.color = { r: 0, g: 0, b: 1, a: 1 };
 const circle = toodle.shapes.Circle({
   position: { x: 30, y: 30 },
   scale: { x: 50, y: 50 },
-  size: { width: 1, height: 1 },
+  radius: .5,
   color: { r: 0, g: 1, b: 1, a: 1 },
 });
 

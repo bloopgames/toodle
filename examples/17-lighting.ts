@@ -46,7 +46,7 @@ function draw() {
   );
   toodle.draw(
     toodle.shapes.Circle({
-      size: { width: 100, height: 100 },
+      radius: 50,
       color: { r: 1, g: 0.8, b: 0.6, a: 1 },
       shader,
       position: toodle.convertSpace(mouse, { from: "screen", to: "world" }),
@@ -73,8 +73,8 @@ function makeLightingShader(blendOperation: GPUBlendOperation) {
 
       return vec4f(color.rgb * light * isTransparent, color.a);
     }
-  `,
-    {
+  `, {
+    blendMode: {
       color: {
         srcFactor: "one",
         dstFactor: "one",
@@ -85,7 +85,8 @@ function makeLightingShader(blendOperation: GPUBlendOperation) {
         dstFactor: "one",
         operation: blendOperation,
       },
-    },
+    }
+  }
   );
 }
 
