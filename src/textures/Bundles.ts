@@ -480,6 +480,11 @@ export class Bundles {
     const bottomCrop =
       frame.sourceSize.h - frame.spriteSourceSize.y - frame.spriteSourceSize.h;
 
+    // Inset UVs by half a texel to prevent bilinear sampling from
+    // bleeding into adjacent atlas padding/sprites
+    const halfTexelX = 0.5 / atlasWidth;
+    const halfTexelY = 0.5 / atlasHeight;
+
     return {
       cropOffset: {
         x: leftCrop - rightCrop,
@@ -490,16 +495,16 @@ export class Bundles {
         height: frame.sourceSize.h,
       },
       uvOffset: {
-        x: frame.frame.x / atlasWidth,
-        y: frame.frame.y / atlasHeight,
+        x: frame.frame.x / atlasWidth + halfTexelX,
+        y: frame.frame.y / atlasHeight + halfTexelY,
       },
       uvScale: {
         width: frame.sourceSize.w / atlasWidth,
         height: frame.sourceSize.h / atlasHeight,
       },
       uvScaleCropped: {
-        width: frame.frame.w / atlasWidth,
-        height: frame.frame.h / atlasHeight,
+        width: (frame.frame.w - 1) / atlasWidth,
+        height: (frame.frame.h - 1) / atlasHeight,
       },
     };
   }
