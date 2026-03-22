@@ -4,6 +4,10 @@ A detailed list of all notable changes for every released version.
 
 [All releases](https://www.npmjs.com/package/@bloopjs/toodle)
 
+## [0.1.7](https://github.com/bloopgames/toodle/releases/tag/0.1.7)
+
+- Use half-texel insets to prevent bleeding from neighboring sprites in the atlas when rendering quads with `toodle.Quad` or `toodle.QuadShader`. This should be a transparent change for most users, but if you were relying on the old behavior of sampling neighboring pixels in the atlas for effects like outlines or borders, you may see some visual differences.
+
 ## [0.1.3](https://github.com/bloopgames/toodle/releases/tag/0.1.3)
 
 - Make `TextNode` backend-agnostic, you can now use `toodle.Text` with both WebGPU and WebGL2 backends to measure text positioning. Rendering with webgl2 will throw.
