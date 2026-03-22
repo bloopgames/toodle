@@ -1,5 +1,3 @@
-import { AssetManager } from "./textures/AssetManager";
-
 export type * from "./coreTypes/mod";
 
 export type * from "./scene/QuadNode";

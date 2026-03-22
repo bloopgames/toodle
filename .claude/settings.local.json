@@ -16,7 +16,8 @@
       "Bash(bun test:*)",
       "Bash(biome check:*)",
       "Bash(bun run biome:check:*)",
-      "Bash(ls -la /Users/neilsarkar/work/toodle/examples/*.ts)"
+      "Bash(ls -la /Users/neilsarkar/work/toodle/examples/*.ts)",
+      "Bash(python3:*)"
     ]
   }
 }
