@@ -109,18 +109,22 @@ export async function packBitmapsToAtlas(
     }
 
     // Create atlas coords
+    // Inset UVs by half a texel to prevent bilinear sampling from
+    // bleeding into adjacent atlas padding/sprites
+    const halfTexel = 0.5 / textureSize;
+
     atlasRegionMap.set(id, {
       uvOffset: {
-        x: space.x / textureSize,
-        y: space.y / textureSize,
+        x: space.x / textureSize + halfTexel,
+        y: space.y / textureSize + halfTexel,
       },
       uvScale: {
         width: originalSize.width / textureSize,
         height: originalSize.height / textureSize,
       },
       uvScaleCropped: {
-        width: texture.width / textureSize,
-        height: texture.height / textureSize,
+        width: (texture.width - 1) / textureSize,
+        height: (texture.height - 1) / textureSize,
       },
       cropOffset: offset,
       originalSize,
