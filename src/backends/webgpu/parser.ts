@@ -1,4 +1,4 @@
-import { type StructInfo, WgslReflect } from "wgsl_reflect";
+import { type Attribute, type StructInfo, WgslReflect } from "wgsl_reflect";
 import type { ShaderDescriptor } from "./ShaderDescriptor";
 
 export function codeWithLineNumbers(code: string) {
@@ -87,9 +87,21 @@ function injectInstanceData(instanceStruct: string, code: string) {
     .map((m) => `output.${slug}_${m.name} = instance.${slug}_${m.name};`)
     .join("\n");
 
+  const formatAttributes = (attributes: Attribute[] | null): string => {
+    if (attributes === null) return "";
+
+    return attributes
+      .filter((a) => a.name !== "location")
+      .map(a => {
+        const value = Array.isArray(a.value) ? a.value.join(', ') : a.value;
+
+        return `@${a.name}(${value})`
+      }).join(', ');
+  };
+
   const prefixedMembersSnippet = struct.members.map(
     (m) =>
-      `${slug}_${m.name}: ${m.type.name}${m.format ? `<${m.format.name}>` : ""}`,
+      `${formatAttributes(m.attributes)} ${slug}_${m.name}: ${m.type.name}${m.format ? `<${m.format.name}>` : ""}`,
   );
 
   let startingVertexLocation = findStartingLocation(baseInstanceStruct);
@@ -103,7 +115,7 @@ function injectInstanceData(instanceStruct: string, code: string) {
   const vertexOutputSnippet = prefixedMembersSnippet
     .map(
       (snippet) =>
-        `@location(${startingFragmentLocation++}) @interpolate(flat) ${snippet},`,
+        `@location(${startingFragmentLocation++}) ${snippet},`,
     )
     .join("\n  ");
 
