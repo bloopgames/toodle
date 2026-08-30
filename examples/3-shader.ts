@@ -20,7 +20,7 @@ const shader = toodle.QuadShader(
   3,
   /*wgsl*/ `
 struct Flash {
-  color: vec4f,
+  @location(0) @interpolate(flat) color: vec4f,
   intensity: f32
 }
 
